@@ -1,0 +1,35 @@
+{
+  "name": "ghahreman-hero-wallet",
+  "version": "0.9.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite build --watch --mode development",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@mysten/sui.js": "^0.54.1",
+    "@solana/web3.js": "^1.95.3",
+    "bip39": "^3.1.0",
+    "bitcoinjs-lib": "^6.1.7",
+    "ecpair": "^3.0.0",
+    "ed25519-hd-key": "^1.3.0",
+    "ethers": "^6.13.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "tiny-secp256k1": "^2.2.4",
+    "tweetnacl": "^1.0.3"
+  },
+  "devDependencies": {
+    "@crxjs/vite-plugin": "^2.2.0",
+    "@types/chrome": "^0.0.285",
+    "@types/react": "^18.3.8",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react-swc": "^3.7.1",
+    "terser": "^5.44.0",
+    "typescript": "^5.6.3",
+    "vite": "^7.1.9",
+    "vite-plugin-wasm": "^3.5.0"
+  }
+}

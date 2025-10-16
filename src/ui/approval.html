@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Hero Approval</title>
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="script-src 'self'; object-src 'self'"
+    />
+    <style>
+      body {
+        font-family: ui-sans-serif, system-ui;
+        margin: 0;
+        background: #0f1318;
+        color: #e7edf3;
+      }
+      .wrap {
+        padding: 16px;
+      }
+      .card {
+        background: #141a21;
+        border: 1px solid #222b36;
+        border-radius: 12px;
+        padding: 16px;
+      }
+      .row {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        margin: 8px 0;
+      }
+      .btns {
+        display: flex;
+        gap: 12px;
+        margin-top: 16px;
+      }
+      button {
+        padding: 10px 14px;
+        border-radius: 10px;
+        border: 0;
+        cursor: pointer;
+      }
+      .approve {
+        background: #0ea5e9;
+        color: #001018;
+        font-weight: 700;
+      }
+      .reject {
+        background: #ef4444;
+        color: #1f0606;
+        font-weight: 700;
+      }
+      code {
+        background: #0b0f14;
+        padding: 6px 8px;
+        border-radius: 8px;
+        border: 1px solid #1a222c;
+        display: block;
+        overflow: auto;
+        max-height: 180px;
+      }
+      h3 {
+        margin: 10px 0 0 0;
+      }
+      small {
+        opacity: 0.7;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="card">
+        <h3>Transaction approval</h3>
+        <div class="row"><small id="origin"></small></div>
+        <div class="row"><b id="method"></b></div>
+        <code id="payload"></code>
+        <div class="btns">
+          <button class="reject" id="rejectBtn">Reject</button>
+          <button class="approve" id="approveBtn">Approve</button>
+        </div>
+      </div>
+    </div>
+    <script type="module">
+      const raw = decodeURIComponent(location.hash.slice(1) || '%7B%7D');
+      const info = JSON.parse(raw || '{}');
+      const approvalId = info.approvalId || info.id;
+      document.getElementById('origin').textContent = info.url || '';
+      document.getElementById('method').textContent = info.method || '';
+      document.getElementById('payload').textContent = JSON.stringify(
+        info.payload ?? {},
+        null,
+        2
+      );
+
+      document.getElementById('approveBtn').onclick = () => {
+        chrome.runtime.sendMessage({
+          kind: 'HERO_APPROVAL_RESULT',
+          approvalId,
+          decision: 'approve',
+        });
+        window.close();
+      };
+      document.getElementById('rejectBtn').onclick = () => {
+        chrome.runtime.sendMessage({
+          kind: 'HERO_APPROVAL_RESULT',
+          approvalId,
+          decision: 'reject',
+        });
+        window.close();
+      };
+      const port = chrome.runtime.connect({ name: 'approval-keepalive' });
+      window.addEventListener('unload', () => port.disconnect());
+    </script>
+  </body>
+</html>
