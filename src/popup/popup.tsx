@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { getTheme, setTheme, type Theme } from '../ui/theme';
 import {
   isUnlocked,
   loadState,
@@ -27,6 +28,7 @@ export default function App() {
 
   const [pin, setPin] = useState('');
   const [connecting, setConnecting] = useState(false);
+  const [theme, setThemeState] = useState<Theme>('dark');
 
   // Initialize popup state
   useEffect(() => {
@@ -34,6 +36,7 @@ export default function App() {
 
     const initialize = async () => {
       try {
+        const t = await getTheme();
         // Get current tab
         const tabs = await chrome.tabs.query({
           active: true,
@@ -51,6 +54,7 @@ export default function App() {
             walletState,
             loading: false,
           }));
+          setThemeState(t);
         }
       } catch (error) {
         console.error('Failed to initialize popup:', error);
@@ -167,6 +171,12 @@ export default function App() {
     });
   }, []);
 
+  const toggleTheme = useCallback(async () => {
+    const next: Theme = theme === 'dark' ? 'light' : 'dark';
+    await setTheme(next);
+    setThemeState(next);
+  }, [theme]);
+
   // Using shared CSS classes from styles.css
 
   if (state.loading) {
@@ -189,6 +199,9 @@ export default function App() {
         {state.tab?.url && (
           <span className="tag">{new URL(state.tab.url).hostname}</span>
         )}
+        <button className="link-btn" onClick={toggleTheme} title="Toggle theme">
+          {theme === 'dark' ? 'Light' : 'Dark'}
+        </button>
       </div>
 
       {state.error && <div className="error">{state.error}</div>}

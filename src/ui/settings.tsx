@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { loadState, WalletState } from '../utils/keystore';
+import { getTheme, setTheme, initTheme, type Theme } from './theme';
 
 // Enhanced settings interface
 interface SettingsState {
@@ -19,6 +20,7 @@ function Settings() {
     showRawData: false,
     confirmClear: false,
   });
+  const [theme, setThemeState] = useState<Theme>('dark');
 
   // Load wallet state
   useEffect(() => {
@@ -26,6 +28,7 @@ function Settings() {
 
     const loadWalletState = async () => {
       try {
+        const t = await getTheme();
         const walletState = await loadState();
         if (mounted) {
           setState((prev) => ({
@@ -33,6 +36,7 @@ function Settings() {
             walletState,
             loading: false,
           }));
+          setThemeState(t);
         }
       } catch (error) {
         console.error('Failed to load wallet state:', error);
@@ -108,6 +112,12 @@ function Settings() {
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
   }, [state.walletState]);
+
+  const toggleTheme = useCallback(async () => {
+    const next: Theme = theme === 'dark' ? 'light' : 'dark';
+    await setTheme(next);
+    setThemeState(next);
+  }, [theme]);
 
   // Styles for better UX
   const styles = {
@@ -262,7 +272,12 @@ function Settings() {
 
   return (
     <div style={styles.container}>
-      <h1 style={styles.header}>Hero Wallet Settings</h1>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <h1 style={styles.header}>Hero Wallet Settings</h1>
+        <button className="link-btn" onClick={toggleTheme}>
+          {theme === 'dark' ? 'Light' : 'Dark'} Theme
+        </button>
+      </div>
       <p style={styles.subtitle}>
         Manage your wallet configuration and view account information
       </p>
@@ -422,10 +437,12 @@ function Settings() {
   );
 }
 
-// Initialize the settings page
+// Initialize the settings page with theme
 const rootElement = document.getElementById('root');
 if (rootElement) {
-  createRoot(rootElement).render(<Settings />);
+  initTheme().then(() => {
+    createRoot(rootElement).render(<Settings />);
+  });
 } else {
   console.error('Root element not found');
 }
