@@ -167,110 +167,12 @@ export default function App() {
     });
   }, []);
 
-  // Styles for better UX
-  const styles = {
-    container: {
-      width: 350,
-      minHeight: 200,
-      padding: 16,
-      fontFamily: 'ui-sans-serif, system-ui, sans-serif',
-      backgroundColor: '#ffffff',
-      color: '#1f2937',
-    },
-    header: {
-      fontSize: 20,
-      fontWeight: 600,
-      margin: '0 0 8px 0',
-      color: '#111827',
-    },
-    url: {
-      fontSize: 12,
-      color: '#6b7280',
-      marginBottom: 16,
-      wordBreak: 'break-all' as const,
-      backgroundColor: '#f9fafb',
-      padding: '4px 8px',
-      borderRadius: 4,
-      border: '1px solid #e5e7eb',
-    },
-    input: {
-      width: '100%',
-      padding: 12,
-      borderRadius: 8,
-      border: '2px solid #e5e7eb',
-      fontSize: 14,
-      marginBottom: 12,
-      boxSizing: 'border-box' as const,
-      transition: 'border-color 0.2s',
-    },
-    inputFocus: {
-      borderColor: '#3b82f6',
-      outline: 'none',
-    },
-    button: {
-      width: '100%',
-      padding: 12,
-      borderRadius: 8,
-      border: 'none',
-      fontSize: 14,
-      fontWeight: 600,
-      cursor: 'pointer',
-      transition: 'all 0.2s',
-      marginBottom: 8,
-    },
-    buttonPrimary: {
-      backgroundColor: '#3b82f6',
-      color: 'white',
-    },
-    buttonSuccess: {
-      backgroundColor: '#10b981',
-      color: 'white',
-    },
-    buttonDanger: {
-      backgroundColor: '#ef4444',
-      color: 'white',
-    },
-    buttonDisabled: {
-      backgroundColor: '#d1d5db',
-      color: '#9ca3af',
-      cursor: 'not-allowed',
-    },
-    link: {
-      color: '#3b82f6',
-      textDecoration: 'none',
-      fontSize: 14,
-      fontWeight: 500,
-    },
-    error: {
-      color: '#ef4444',
-      fontSize: 12,
-      marginBottom: 12,
-      padding: '8px 12px',
-      backgroundColor: '#fef2f2',
-      border: '1px solid #fecaca',
-      borderRadius: 6,
-    },
-    loading: {
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: 20,
-      fontSize: 14,
-      color: '#6b7280',
-    },
-    accountInfo: {
-      backgroundColor: '#f8fafc',
-      padding: 12,
-      borderRadius: 8,
-      marginBottom: 16,
-      fontSize: 12,
-    },
-  };
+  // Using shared CSS classes from styles.css
 
   if (state.loading) {
     return (
-      <div style={styles.container}>
-        <div style={styles.loading}>Loading wallet...</div>
+      <div className="container">
+        <div className="center subtitle">Loading wallet...</div>
       </div>
     );
   }
@@ -281,92 +183,74 @@ export default function App() {
     state.walletState?.origins?.[new URL(state.tab.url).origin]?.allowed;
 
   return (
-    <div style={styles.container}>
-      <h1 style={styles.header}>Hero Wallet</h1>
+    <div className="container">
+      <div className="header">
+        <div className="title">Hero Wallet</div>
+        {state.tab?.url && (
+          <span className="tag">{new URL(state.tab.url).hostname}</span>
+        )}
+      </div>
 
-      {state.tab?.url && (
-        <div style={styles.url}>{new URL(state.tab.url).hostname}</div>
-      )}
-
-      {state.error && <div style={styles.error}>{state.error}</div>}
+      {state.error && <div className="error">{state.error}</div>}
 
       {!state.unlocked ? (
-        <div>
+        <div className="col">
           <input
+            className="input"
             type="password"
             placeholder="Enter PIN to unlock"
             value={pin}
             onChange={(e) => setPin(e.target.value)}
             onKeyPress={handleKeyPress}
-            style={styles.input}
             autoFocus
           />
           <button
+            className="btn btn-primary"
             onClick={handleUnlock}
             disabled={!pin.trim() || state.loading}
-            style={{
-              ...styles.button,
-              ...(pin.trim() && !state.loading
-                ? styles.buttonPrimary
-                : styles.buttonDisabled),
-            }}
           >
             Unlock Wallet
           </button>
         </div>
       ) : (
-        <div>
+        <div className="col">
           {hasAccounts && (
-            <div style={styles.accountInfo}>
-              <div>
-                <strong>Accounts:</strong>{' '}
-                {state.walletState?.accounts?.length || 0}
-              </div>
-              {isConnected && (
-                <div style={{ color: '#10b981', marginTop: 4 }}>
-                  ✓ Connected to this site
+            <div className="panel col">
+              <div className="row" style={{ justifyContent: 'space-between' }}>
+                <div>
+                  <strong>Accounts:</strong> {state.walletState?.accounts?.length || 0}
                 </div>
-              )}
+                {isConnected && (
+                  <span className="tag" style={{ color: '#10b981', borderColor: '#065f46' }}>✓ Connected</span>
+                )}
+              </div>
+              {state.walletState?.accounts?.slice(0, 1).map((a) => (
+                <div key={a.id} className="account">
+                  <span>{a.chain.toUpperCase()}</span>
+                  <span className="addr">{a.address.slice(0, 6)}…{a.address.slice(-4)}</span>
+                </div>
+              ))}
             </div>
           )}
 
           {hasAccounts && !isConnected && (
             <button
+              className="btn btn-success"
               onClick={connectToSite}
               disabled={connecting}
-              style={{
-                ...styles.button,
-                ...(connecting ? styles.buttonDisabled : styles.buttonSuccess),
-              }}
             >
               {connecting ? 'Connecting...' : 'Connect to Site'}
             </button>
           )}
 
-          <button
-            onClick={handleLock}
-            style={{
-              ...styles.button,
-              ...styles.buttonDanger,
-            }}
-          >
-            Lock Wallet
-          </button>
+          <button className="btn btn-danger" onClick={handleLock}>Lock Wallet</button>
         </div>
       )}
 
-      <div style={{ marginTop: 16, textAlign: 'center' }}>
-        <button
-          onClick={openSettings}
-          style={{
-            ...styles.link,
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-          }}
-        >
-          Open Settings
-        </button>
+      <hr className="hr" />
+
+      <div className="center">
+        <button className="link-btn" onClick={openSettings}>Open Settings</button>
       </div>
     </div>
   );

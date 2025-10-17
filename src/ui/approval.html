@@ -7,64 +7,14 @@
       http-equiv="Content-Security-Policy"
       content="script-src 'self'; object-src 'self'"
     />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="./styles.css" />
     <style>
-      body {
-        font-family: ui-sans-serif, system-ui;
-        margin: 0;
-        background: #0f1318;
-        color: #e7edf3;
-      }
-      .wrap {
-        padding: 16px;
-      }
-      .card {
-        background: #141a21;
-        border: 1px solid #222b36;
-        border-radius: 12px;
-        padding: 16px;
-      }
-      .row {
-        display: flex;
-        gap: 8px;
-        align-items: center;
-        margin: 8px 0;
-      }
-      .btns {
-        display: flex;
-        gap: 12px;
-        margin-top: 16px;
-      }
-      button {
-        padding: 10px 14px;
-        border-radius: 10px;
-        border: 0;
-        cursor: pointer;
-      }
-      .approve {
-        background: #0ea5e9;
-        color: #001018;
-        font-weight: 700;
-      }
-      .reject {
-        background: #ef4444;
-        color: #1f0606;
-        font-weight: 700;
-      }
-      code {
-        background: #0b0f14;
-        padding: 6px 8px;
-        border-radius: 8px;
-        border: 1px solid #1a222c;
-        display: block;
-        overflow: auto;
-        max-height: 180px;
-      }
-      h3 {
-        margin: 10px 0 0 0;
-      }
-      small {
-        opacity: 0.7;
-      }
+      .wrap { padding: 16px; }
+      .card { background: var(--panel); border: 1px solid var(--panel-border); border-radius: 12px; padding: 16px; }
+      .row { display: flex; gap: 8px; align-items: center; margin: 8px 0; }
+      .btns { display: flex; gap: 12px; margin-top: 16px; }
+      code { background: var(--card); padding: 6px 8px; border-radius: 8px; border: 1px solid #1a222c; display: block; overflow: auto; max-height: 180px; }
     </style>
   </head>
   <body>
@@ -75,8 +25,8 @@
         <div class="row"><b id="method"></b></div>
         <code id="payload"></code>
         <div class="btns">
-          <button class="reject" id="rejectBtn">Reject</button>
-          <button class="approve" id="approveBtn">Approve</button>
+          <button class="btn btn-danger" id="rejectBtn">Reject</button>
+          <button class="btn btn-primary" id="approveBtn">Approve</button>
         </div>
       </div>
     </div>
