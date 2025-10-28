@@ -144,6 +144,14 @@ export default function App() {
 
       setState((prev) => ({ ...prev, unlocked: true, loading: false }));
       setPin('');
+      
+      // Notify background script that wallet is unlocked
+      try {
+        chrome.runtime.sendMessage({ kind: 'WALLET_UNLOCKED' });
+        console.log('✅ Sent WALLET_UNLOCKED notification to background');
+      } catch (error) {
+        console.warn('Failed to notify background of unlock:', error);
+      }
     } catch (error) {
       console.error('Unlock failed:', error);
       setState((prev) => ({
@@ -325,6 +333,14 @@ export default function App() {
       setMnemonicInput('');
       setNewPin('');
       setConfirmNewPin('');
+      
+      // Notify background script that wallet is unlocked
+      try {
+        chrome.runtime.sendMessage({ kind: 'WALLET_UNLOCKED' });
+        console.log('✅ Sent WALLET_UNLOCKED notification to background');
+      } catch (error) {
+        console.warn('Failed to notify background of unlock:', error);
+      }
     } catch (error) {
       console.error('Restore wallet failed:', error);
       setState((prev) => ({
@@ -419,6 +435,14 @@ export default function App() {
       setSetupMode(null);
       setNewPin('');
       setConfirmNewPin('');
+      
+      // Notify background script that wallet is unlocked
+      try {
+        chrome.runtime.sendMessage({ kind: 'WALLET_UNLOCKED' });
+        console.log('✅ Sent WALLET_UNLOCKED notification to background');
+      } catch (error) {
+        console.warn('Failed to notify background of unlock:', error);
+      }
     } catch (error) {
       console.error('Create wallet failed:', error);
       setState((prev) => ({

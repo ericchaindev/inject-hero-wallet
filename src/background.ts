@@ -49,7 +49,11 @@ type ApprovalResponse = {
   error?: { code: number; message: string };
 };
 
-type BackgroundMessage = PageRequest | ApprovalResponse;
+type UnlockNotification = {
+  kind: 'WALLET_UNLOCKED';
+};
+
+type BackgroundMessage = PageRequest | ApprovalResponse | UnlockNotification;
 
 type BackgroundResponse = {
   target: 'herowallet:cs->inpage';
@@ -70,6 +74,10 @@ interface PendingRequest {
 
 const PORT_NAME = 'herowallet:page-bridge';
 const pendingRequests = new Map<string | number, PendingRequest>();
+const pendingUnlockRequests = new Map<
+  string | number,
+  { origin: string; method: string; params: unknown }
+>();
 
 // Auto-unlock wallet on service worker start if PIN is remembered
 async function attemptAutoUnlock(): Promise<void> {
@@ -256,8 +264,17 @@ async function handleEthRequestAccounts(
   console.log('🔍 Wallet unlocked status:', unlocked);
 
   if (!unlocked) {
+    // Store this request to be retried after unlock
+    pendingUnlockRequests.set(id, {
+      origin,
+      method: 'eth_requestAccounts',
+      params: {},
+    });
+    
     // Open popup to unlock
     console.log('⚠️  Wallet is locked. Opening popup window...');
+    console.log('📌 Request stored for retry after unlock:', id);
+    
     try {
       const popupWindow = await chrome.windows.create({
         url: chrome.runtime.getURL('src/popup/index.html'),
@@ -269,10 +286,30 @@ async function handleEthRequestAccounts(
     } catch (error) {
       console.error('❌ Failed to open popup window:', error);
     }
-    throw {
-      code: 4100,
-      message: 'Wallet is locked. Please unlock your wallet to continue.',
-    };
+    
+    // Return a promise that will be resolved when wallet unlocks
+    return new Promise<string[]>((resolve, reject) => {
+      pendingRequests.set(id, {
+        id,
+        method: 'eth_requestAccounts',
+        params: {},
+        origin,
+        resolve,
+        reject,
+      });
+      
+      // Timeout after 5 minutes
+      setTimeout(() => {
+        if (pendingRequests.has(id)) {
+          pendingRequests.delete(id);
+          pendingUnlockRequests.delete(id);
+          reject({
+            code: 4100,
+            message: 'Request timed out. Please try again.',
+          });
+        }
+      }, 5 * 60 * 1000);
+    });
   }
 
   // Check if already connected
@@ -678,6 +715,50 @@ async function handleSendTransaction(
 // Handle approval responses from approval.html
 chrome.runtime.onMessage.addListener(
   (message: BackgroundMessage, sender, sendResponse) => {
+    // Handle wallet unlock notification
+    if (message.kind === 'WALLET_UNLOCKED') {
+      console.log('🔓 Wallet unlocked! Processing pending requests...');
+      
+      // Process all pending unlock requests
+      const unlockRequests = Array.from(pendingUnlockRequests.entries());
+      console.log(`📋 Found ${unlockRequests.length} pending unlock requests`);
+      
+      for (const [requestId, { origin, method, params }] of unlockRequests) {
+        console.log(`🔄 Retrying request ${requestId}: ${method}`);
+        
+        // Process the request now that wallet is unlocked
+        (async () => {
+          try {
+            let result: any;
+            
+            if (method === 'eth_requestAccounts') {
+              // Retry eth_requestAccounts
+              result = await handleEthRequestAccounts(origin, requestId);
+            }
+            // Add other methods if needed
+            
+            const pending = pendingRequests.get(requestId);
+            if (pending) {
+              pending.resolve(result);
+              pendingRequests.delete(requestId);
+            }
+          } catch (error: any) {
+            console.error(`❌ Failed to retry request ${requestId}:`, error);
+            const pending = pendingRequests.get(requestId);
+            if (pending) {
+              pending.reject(error);
+              pendingRequests.delete(requestId);
+            }
+          } finally {
+            pendingUnlockRequests.delete(requestId);
+          }
+        })();
+      }
+      
+      sendResponse({ ok: true });
+      return true;
+    }
+    
     if (message.kind === 'APPROVAL_RESPONSE') {
       const { requestId, approved, result, error } = message;
       console.log('📨 Received APPROVAL_RESPONSE:', {
