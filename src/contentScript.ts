@@ -8,12 +8,12 @@ type Req = {
 };
 
 type PageToCS = {
-  target: 'herowallet:inpage->cs';
+  target: 'herowallet:inpage->cs' | 'herowallet:inpage->cs-solana';
   payload: Req;
 };
 
 type Res = {
-  target: 'herowallet:cs->inpage';
+  target: 'herowallet:cs->inpage' | 'herowallet:cs->inpage-solana';
   ok: boolean;
   id?: string | number;
   result?: unknown;
@@ -24,6 +24,7 @@ type BackgroundMessage = {
   kind: 'PAGE_REQUEST';
   from: 'content-script';
   url: string;
+  origin: string;
   request: Req;
 };
 
@@ -73,19 +74,22 @@ class HeroWalletInjector {
       if (this.isAlreadyInjected()) {
         console.log('Hero Wallet: Script already injected by another instance');
         this.injected = true;
+        this.cleanup();
         return;
       }
 
-      // Get the inpage script URL and validate it
-      const scriptUrl = this.getInpageScriptUrl();
-      if (!scriptUrl) {
-        console.error('Hero Wallet: Cannot get inpage script URL');
+      // Get the inpage script URLs and validate them
+      const evmScriptUrl = this.getInpageScriptUrl('inpage.js');
+      const solanaScriptUrl = this.getInpageScriptUrl('inpage-solana.js');
+
+      if (!evmScriptUrl) {
+        console.error('Hero Wallet: Cannot get EVM inpage script URL');
         this.scheduleRetry();
         return;
       }
 
-      // Create and configure script element
-      const script = this.createScriptElement(scriptUrl);
+      // Create and configure script elements
+      const evmScript = this.createScriptElement(evmScriptUrl, 'evm');
       const target = this.findInjectionTarget();
 
       if (!target) {
@@ -96,10 +100,26 @@ class HeroWalletInjector {
         return;
       }
 
-      // Inject the script
-      this.injectScript(script, target);
+      // Mark as injected BEFORE injection to prevent race conditions
+      this.injected = true;
+
+      // Inject the EVM script first
+      this.injectScript(evmScript, target);
+
+      // Inject Solana script if available
+      if (solanaScriptUrl) {
+        const solanaScript = this.createScriptElement(
+          solanaScriptUrl,
+          'solana'
+        );
+        this.injectScript(solanaScript, target);
+      }
+
+      // Cleanup retry timers
+      this.cleanup();
     } catch (error) {
       console.error('Hero Wallet: Injection attempt failed:', error);
+      this.injected = false; // Reset on error
       this.scheduleRetry();
     }
   }
@@ -110,40 +130,42 @@ class HeroWalletInjector {
     );
   }
 
-  private getInpageScriptUrl(): string | null {
+  private getInpageScriptUrl(filename: string): string | null {
     try {
       if (!chrome.runtime?.getURL) {
         throw new Error('Chrome runtime not available');
       }
-      return chrome.runtime.getURL('inpage.js');
+      return chrome.runtime.getURL(filename);
     } catch (error) {
       console.error('Hero Wallet: Failed to get script URL:', error);
       return null;
     }
   }
 
-  private createScriptElement(src: string): HTMLScriptElement {
+  private createScriptElement(
+    src: string,
+    type: 'evm' | 'solana' = 'evm'
+  ): HTMLScriptElement {
     const script = document.createElement('script');
     script.src = src;
     script.async = false; // Ensure synchronous execution
     script.type = 'text/javascript';
     script.setAttribute(
       HeroWalletInjector.INJECTION_MARKER,
-      HeroWalletInjector.INJECTION_VALUE
+      `${HeroWalletInjector.INJECTION_VALUE}-${type}`
     );
 
     // Add load/error handlers
     script.onload = () => {
-      console.log('Hero Wallet: Inpage script loaded successfully');
-      this.injected = true;
-      this.cleanup();
-      // Remove script element after successful load
-      setTimeout(() => script.remove(), 100);
+      console.log(`Hero Wallet: ${type} inpage script loaded successfully`);
+      // Don't remove the script - it needs to stay in DOM
     };
 
     script.onerror = (error) => {
-      console.error('Hero Wallet: Inpage script failed to load:', error);
-      this.scheduleRetry();
+      console.error(
+        `Hero Wallet: ${type} inpage script failed to load:`,
+        error
+      );
     };
 
     return script;
@@ -315,8 +337,13 @@ class HeroWalletMessageHandler {
 
     const requestId = message.payload.id;
     const method = message.payload.method;
+    const isSolana = message.target === 'herowallet:inpage->cs-solana';
 
-    console.log(`📨 Content script received: ${method} (ID: ${requestId})`);
+    console.log(
+      `📨 Content script received: ${method} (ID: ${requestId}) ${
+        isSolana ? '[Solana]' : '[EVM]'
+      }`
+    );
 
     // Check extension context validity
     if (!this.isExtensionContextValid()) {
@@ -324,7 +351,8 @@ class HeroWalletMessageHandler {
       this.sendErrorResponse(
         requestId,
         -32603,
-        'Extension context invalidated'
+        'Extension context invalidated',
+        isSolana
       );
       return;
     }
@@ -340,13 +368,14 @@ class HeroWalletMessageHandler {
         kind: 'PAGE_REQUEST',
         from: 'content-script',
         url: location.href,
+        origin: location.origin,
         request: message.payload,
       };
 
-      this.dispatchToBackground(backgroundMessage, method, requestId);
+      this.dispatchToBackground(backgroundMessage, method, requestId, isSolana);
     } catch (error) {
       console.error('Hero Wallet: Failed to process inpage message:', error);
-      this.sendErrorResponse(requestId, -32603, 'Internal error');
+      this.sendErrorResponse(requestId, -32603, 'Internal error', isSolana);
     }
   }
 
@@ -378,7 +407,8 @@ class HeroWalletMessageHandler {
       typeof message === 'object' &&
       message !== null &&
       'target' in message &&
-      message.target === 'herowallet:inpage->cs' &&
+      (message.target === 'herowallet:inpage->cs' ||
+        message.target === 'herowallet:inpage->cs-solana') &&
       'payload' in message &&
       typeof message.payload === 'object'
     );
@@ -389,7 +419,8 @@ class HeroWalletMessageHandler {
       typeof message === 'object' &&
       message !== null &&
       'target' in message &&
-      message.target === 'herowallet:cs->inpage'
+      (message.target === 'herowallet:cs->inpage' ||
+        message.target === 'herowallet:cs->inpage-solana')
     );
   }
 
@@ -422,10 +453,13 @@ class HeroWalletMessageHandler {
   private sendErrorResponse(
     requestId: string | number | undefined,
     code: number,
-    message: string
+    message: string,
+    isSolana: boolean = false
   ): void {
     const errorResponse: Res = {
-      target: 'herowallet:cs->inpage',
+      target: isSolana
+        ? 'herowallet:cs->inpage-solana'
+        : 'herowallet:cs->inpage',
       ok: false,
       id: requestId,
       error: { code, message },
@@ -444,9 +478,14 @@ class HeroWalletMessageHandler {
   private dispatchToBackground(
     backgroundMessage: BackgroundMessage,
     method: string,
-    requestId?: string | number
+    requestId?: string | number,
+    isSolana: boolean = false
   ): void {
-    console.log(`🚀 Sending to background: ${method} (ID: ${requestId})`);
+    console.log(
+      `🚀 Sending to background: ${method} (ID: ${requestId}) ${
+        isSolana ? '[Solana]' : '[EVM]'
+      }`
+    );
 
     if (this.port) {
       try {
@@ -460,7 +499,8 @@ class HeroWalletMessageHandler {
         this.sendErrorResponse(
           requestId,
           -32603,
-          'Failed to communicate with background'
+          'Failed to communicate with background',
+          isSolana
         );
         return;
       }
@@ -479,7 +519,8 @@ class HeroWalletMessageHandler {
         this.sendErrorResponse(
           requestId,
           -32603,
-          chrome.runtime.lastError.message || 'Extension context invalidated'
+          chrome.runtime.lastError.message || 'Extension context invalidated',
+          isSolana
         );
         return;
       }
@@ -491,7 +532,8 @@ class HeroWalletMessageHandler {
         this.sendErrorResponse(
           requestId,
           -32603,
-          'No response from background script'
+          'No response from background script',
+          isSolana
         );
         return;
       }

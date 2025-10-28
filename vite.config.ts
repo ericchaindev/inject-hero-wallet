@@ -70,6 +70,7 @@ export default defineConfig(({ command, mode }) => {
         input: {
           // Core extension scripts
           inpage: resolve(__dirname, 'src/inpage.ts'),
+          'inpage-solana': resolve(__dirname, 'src/inpage-solana.ts'),
           background: resolve(__dirname, 'src/background.ts'),
           contentScript: resolve(__dirname, 'src/contentScript.ts'),
 
@@ -84,7 +85,12 @@ export default defineConfig(({ command, mode }) => {
           entryFileNames: (chunkInfo) => {
             // Critical extension files at root level
             if (
-              ['inpage', 'background', 'contentScript'].includes(chunkInfo.name)
+              [
+                'inpage',
+                'inpage-solana',
+                'background',
+                'contentScript',
+              ].includes(chunkInfo.name)
             ) {
               return `${chunkInfo.name}.js`;
             }
@@ -120,6 +126,11 @@ export default defineConfig(({ command, mode }) => {
 
           // Enhanced chunk splitting for better performance
           manualChunks: (id) => {
+            // Don't create chunks for inpage scripts to avoid scope conflicts
+            if (id.includes('src/inpage')) {
+              return undefined;
+            }
+
             // React ecosystem
             if (
               id.includes('node_modules/react') ||

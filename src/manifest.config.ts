@@ -60,7 +60,12 @@ export default {
   // Enhanced web accessible resources with better security
   web_accessible_resources: [
     {
-      resources: ['inpage.js', 'src/ui/approval.html', 'src/ui/settings.html'],
+      resources: [
+        'inpage.js',
+        'inpage-solana.js',
+        'src/ui/approval.html',
+        'src/ui/settings.html',
+      ],
       matches: ['<all_urls>'],
     },
   ],

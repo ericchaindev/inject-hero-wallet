@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Hero Wallet - Solana Test</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+          sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+      }
+      .container {
+        background: white;
+        border-radius: 20px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        padding: 40px;
+        max-width: 600px;
+        width: 100%;
+      }
+      h1 {
+        color: #667eea;
+        margin-bottom: 10px;
+        font-size: 32px;
+      }
+      .subtitle {
+        color: #666;
+        margin-bottom: 30px;
+        font-size: 14px;
+      }
+      .section {
+        margin-bottom: 30px;
+        padding: 20px;
+        background: #f8f9fa;
+        border-radius: 12px;
+      }
+      .section-title {
+        font-size: 18px;
+        font-weight: 600;
+        margin-bottom: 15px;
+        color: #333;
+      }
+      button {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+        margin: 5px;
+      }
+      button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+      }
+      button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none;
+      }
+      .info-box {
+        background: white;
+        padding: 15px;
+        border-radius: 8px;
+        margin-top: 15px;
+        border-left: 4px solid #667eea;
+      }
+      .info-label {
+        font-weight: 600;
+        color: #667eea;
+        font-size: 12px;
+        text-transform: uppercase;
+        margin-bottom: 5px;
+      }
+      .info-value {
+        font-family: 'Courier New', monospace;
+        font-size: 13px;
+        color: #333;
+        word-break: break-all;
+      }
+      .status {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 600;
+        margin-left: 10px;
+      }
+      .status.connected {
+        background: #10b981;
+        color: white;
+      }
+      .status.disconnected {
+        background: #ef4444;
+        color: white;
+      }
+      .log {
+        background: #1e293b;
+        color: #10b981;
+        padding: 15px;
+        border-radius: 8px;
+        font-family: 'Courier New', monospace;
+        font-size: 12px;
+        max-height: 200px;
+        overflow-y: auto;
+        margin-top: 15px;
+      }
+      .log-entry {
+        margin-bottom: 5px;
+      }
+      .log-time {
+        color: #64748b;
+      }
+      .log-success {
+        color: #10b981;
+      }
+      .log-error {
+        color: #ef4444;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>🟣 Hero Wallet</h1>
+      <p class="subtitle">Solana Integration Test</p>
+
+      <!-- Provider Detection -->
+      <div class="section">
+        <div class="section-title">
+          Provider Detection
+          <span id="status" class="status disconnected">Disconnected</span>
+        </div>
+        <div class="info-box">
+          <div class="info-label">Window.solana</div>
+          <div class="info-value" id="provider-status">Checking...</div>
+        </div>
+        <div class="info-box">
+          <div class="info-label">Is Hero Wallet</div>
+          <div class="info-value" id="is-hero">Checking...</div>
+        </div>
+        <div class="info-box">
+          <div class="info-label">Is Phantom Compatible</div>
+          <div class="info-value" id="is-phantom">Checking...</div>
+        </div>
+      </div>
+
+      <!-- Connection -->
+      <div class="section">
+        <div class="section-title">Connection</div>
+        <button onclick="connectWallet()">Connect Wallet</button>
+        <button onclick="disconnectWallet()">Disconnect</button>
+
+        <div class="info-box" id="address-box" style="display: none">
+          <div class="info-label">Connected Address</div>
+          <div class="info-value" id="connected-address">-</div>
+        </div>
+      </div>
+
+      <!-- Sign Message -->
+      <div class="section">
+        <div class="section-title">Sign Message</div>
+        <button onclick="signMessage()" id="sign-btn" disabled>
+          Sign "Hello Solana!"
+        </button>
+
+        <div class="info-box" id="signature-box" style="display: none">
+          <div class="info-label">Signature</div>
+          <div class="info-value" id="signature-value">-</div>
+        </div>
+      </div>
+
+      <!-- Logs -->
+      <div class="section">
+        <div class="section-title">Activity Log</div>
+        <div class="log" id="log"></div>
+      </div>
+    </div>
+
+    <script>
+      let connectedPublicKey = null;
+
+      function log(message, type = 'info') {
+        const logEl = document.getElementById('log');
+        const time = new Date().toLocaleTimeString();
+        const className =
+          type === 'error'
+            ? 'log-error'
+            : type === 'success'
+            ? 'log-success'
+            : '';
+        logEl.innerHTML += `<div class="log-entry"><span class="log-time">[${time}]</span> <span class="${className}">${message}</span></div>`;
+        logEl.scrollTop = logEl.scrollHeight;
+      }
+
+      function updateStatus(connected) {
+        const statusEl = document.getElementById('status');
+        statusEl.className = connected
+          ? 'status connected'
+          : 'status disconnected';
+        statusEl.textContent = connected ? 'Connected' : 'Disconnected';
+
+        document.getElementById('sign-btn').disabled = !connected;
+      }
+
+      // Check provider on load
+      window.addEventListener('load', async () => {
+        log('🚀 Page loaded, checking for Solana provider...');
+
+        if (window.solana) {
+          log('✅ window.solana detected!', 'success');
+          document.getElementById('provider-status').textContent =
+            '✅ Available';
+
+          if (window.solana.isHeroWallet) {
+            log('✅ Hero Wallet detected!', 'success');
+            document.getElementById('is-hero').textContent = '✅ Yes';
+          } else {
+            document.getElementById('is-hero').textContent = '❌ No';
+          }
+
+          if (window.solana.isPhantom) {
+            log('✅ Phantom compatible', 'success');
+            document.getElementById('is-phantom').textContent =
+              '✅ Yes (Compatible)';
+          } else {
+            document.getElementById('is-phantom').textContent = '❌ No';
+          }
+
+          // Setup event listeners
+          window.solana.on('connect', (publicKey) => {
+            log(`🔗 Connected to: ${publicKey.toBase58()}`, 'success');
+            updateStatus(true);
+          });
+
+          window.solana.on('disconnect', () => {
+            log('🔌 Disconnected', 'info');
+            updateStatus(false);
+            connectedPublicKey = null;
+            document.getElementById('address-box').style.display = 'none';
+          });
+        } else {
+          log('❌ No Solana provider found', 'error');
+          document.getElementById('provider-status').textContent =
+            '❌ Not Available';
+          document.getElementById('is-hero').textContent = '-';
+          document.getElementById('is-phantom').textContent = '-';
+        }
+      });
+
+      async function connectWallet() {
+        if (!window.solana) {
+          log('❌ Solana provider not found', 'error');
+          alert('Please install Hero Wallet extension!');
+          return;
+        }
+
+        try {
+          log('🔄 Requesting wallet connection...');
+          const response = await window.solana.connect();
+          connectedPublicKey = response.publicKey;
+
+          const address = connectedPublicKey.toBase58();
+          log(`✅ Connected successfully!`, 'success');
+          log(`📍 Address: ${address}`, 'success');
+
+          document.getElementById('connected-address').textContent = address;
+          document.getElementById('address-box').style.display = 'block';
+          updateStatus(true);
+        } catch (error) {
+          log(`❌ Connection failed: ${error.message}`, 'error');
+          console.error('Connection error:', error);
+        }
+      }
+
+      async function disconnectWallet() {
+        if (!window.solana) {
+          log('❌ Solana provider not found', 'error');
+          return;
+        }
+
+        try {
+          log('🔄 Disconnecting wallet...');
+          await window.solana.disconnect();
+          log('✅ Disconnected successfully', 'success');
+
+          connectedPublicKey = null;
+          document.getElementById('address-box').style.display = 'none';
+          updateStatus(false);
+        } catch (error) {
+          log(`❌ Disconnect failed: ${error.message}`, 'error');
+          console.error('Disconnect error:', error);
+        }
+      }
+
+      async function signMessage() {
+        if (!window.solana || !connectedPublicKey) {
+          log('❌ Wallet not connected', 'error');
+          return;
+        }
+
+        try {
+          log('🔄 Requesting message signature...');
+
+          const message = new TextEncoder().encode(
+            'Hello Solana from Hero Wallet!'
+          );
+          const response = await window.solana.signMessage(message, 'utf8');
+
+          log('✅ Message signed successfully!', 'success');
+
+          // Convert signature to hex for display
+          const signatureHex = Array.from(response.signature)
+            .map((b) => b.toString(16).padStart(2, '0'))
+            .join('');
+
+          document.getElementById('signature-value').textContent =
+            '0x' + signatureHex;
+          document.getElementById('signature-box').style.display = 'block';
+
+          log(`📝 Signature: 0x${signatureHex.substring(0, 20)}...`, 'success');
+        } catch (error) {
+          log(`❌ Signing failed: ${error.message}`, 'error');
+          console.error('Signing error:', error);
+        }
+      }
+    </script>
+  </body>
+</html>
