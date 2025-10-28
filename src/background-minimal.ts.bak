@@ -1,0 +1,175 @@
+export {};
+
+// Minimal Background Service Worker for Testing
+
+console.log(
+  '🚀 Minimal Hero Wallet background script loaded at:',
+  new Date().toISOString()
+);
+
+type PageRequest = {
+  kind: 'PAGE_REQUEST';
+  request?: {
+    id?: string | number;
+    method?: string;
+    params?: unknown;
+  };
+};
+
+type BackgroundResponse = {
+  target: 'herowallet:cs->inpage';
+  ok: boolean;
+  id?: string | number;
+  result?: unknown;
+  error?: { code: number; message: string; data?: unknown };
+};
+
+const PORT_NAME = 'herowallet:page-bridge';
+
+function buildError(
+  id: string | number | undefined,
+  code: number,
+  message: string
+): BackgroundResponse {
+  return {
+    target: 'herowallet:cs->inpage',
+    ok: false,
+    id,
+    error: { code, message },
+  };
+}
+
+function buildResult(
+  id: string | number | undefined,
+  result: unknown
+): BackgroundResponse {
+  return {
+    target: 'herowallet:cs->inpage',
+    ok: true,
+    id,
+    result,
+  };
+}
+
+function processPageRequest(
+  message: PageRequest | undefined,
+  respond: (res: BackgroundResponse) => void
+): void {
+  if (!message || message.kind !== 'PAGE_REQUEST') {
+    respond(buildError(undefined, -32600, 'Invalid request format'));
+    return;
+  }
+
+  const method = message.request?.method;
+  const id = message.request?.id;
+
+  console.log('📋 Processing PAGE_REQUEST via background:', method);
+
+  switch (method) {
+    case 'herowallet_ping': {
+      console.log('🏓 Responding to ping');
+      respond(
+        buildResult(id, {
+          pong: true,
+          timestamp: Date.now(),
+        })
+      );
+      return;
+    }
+    case 'eth_accounts': {
+      console.log('📋 Responding to eth_accounts');
+      respond(buildResult(id, []));
+      return;
+    }
+    case 'eth_chainId': {
+      console.log('� Responding to eth_chainId');
+      respond(buildResult(id, '0x1'));
+      return;
+    }
+    default: {
+      const messageText = method
+        ? `Method not implemented: ${method}`
+        : 'Missing method';
+      respond(buildError(id, -32601, messageText));
+      return;
+    }
+  }
+}
+
+// Handle long-lived port connections from the content script
+chrome.runtime.onConnect.addListener((port) => {
+  if (port.name !== PORT_NAME) {
+    console.warn('Hero Wallet: unknown port connection rejected:', port.name);
+    port.disconnect();
+    return;
+  }
+
+  console.log('� Hero Wallet: Port connected');
+
+  port.onMessage.addListener((message: PageRequest) => {
+    try {
+      processPageRequest(message, (response) => {
+        try {
+          port.postMessage(response);
+        } catch (error) {
+          console.error('Hero Wallet: Failed to post port response:', error);
+        }
+      });
+    } catch (error) {
+      console.error('Hero Wallet: Error handling port message:', error);
+      port.postMessage(
+        buildError(message?.request?.id, -32603, 'Internal error')
+      );
+    }
+  });
+
+  port.onDisconnect.addListener(() => {
+    console.warn('🔌 Hero Wallet: Port disconnected');
+  });
+});
+
+// Simple message listener for one-off requests
+chrome.runtime.onMessage.addListener(
+  (message: PageRequest, _sender, sendResponse) => {
+    try {
+      processPageRequest(message, sendResponse);
+    } catch (error) {
+      console.error('Hero Wallet: Error handling message:', error);
+      sendResponse(buildError(message?.request?.id, -32603, 'Internal error'));
+    }
+
+    // Keep the service worker alive until sendResponse runs
+    return true;
+  }
+);
+
+chrome.runtime.onStartup.addListener(() => {
+  console.log('Hero Wallet minimal service worker started');
+});
+
+chrome.runtime.onInstalled.addListener((details) => {
+  console.log(
+    'Hero Wallet minimal extension installed/updated:',
+    details.reason
+  );
+});
+
+// Keep alive mechanism
+setInterval(() => {
+  console.log(
+    '🔄 Minimal service worker keepalive ping:',
+    new Date().toISOString()
+  );
+  chrome.storage.local.get(['keepalive'], () => {
+    if (chrome.runtime.lastError) {
+      console.log(
+        '🔄 Keepalive completed with error:',
+        chrome.runtime.lastError.message
+      );
+    } else {
+      console.log('🔄 Keepalive completed successfully');
+    }
+  });
+}, 25000);
+
+console.log('✅ Minimal Hero Wallet background script ready');

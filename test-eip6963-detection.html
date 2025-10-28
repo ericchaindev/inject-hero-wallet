@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>EIP-6963 Wallet Detection Test</title>
+    <style>
+      body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        max-width: 900px;
+        margin: 50px auto;
+        padding: 20px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: #fff;
+      }
+      .container {
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        border-radius: 20px;
+        padding: 30px;
+        box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+      }
+      h1 {
+        text-align: center;
+        margin-bottom: 10px;
+        font-size: 2.5em;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+      }
+      .subtitle {
+        text-align: center;
+        margin-bottom: 30px;
+        opacity: 0.9;
+        font-size: 1.1em;
+      }
+      button {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        color: white;
+        border: none;
+        padding: 15px 30px;
+        border-radius: 50px;
+        cursor: pointer;
+        font-size: 16px;
+        font-weight: bold;
+        margin: 10px 5px;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px 0 rgba(245, 87, 108, 0.4);
+      }
+      button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px 0 rgba(245, 87, 108, 0.6);
+      }
+      button:active {
+        transform: translateY(0);
+      }
+      .wallet-card {
+        background: rgba(255, 255, 255, 0.15);
+        border-radius: 15px;
+        padding: 20px;
+        margin: 15px 0;
+        border: 2px solid rgba(255, 255, 255, 0.2);
+        transition: all 0.3s ease;
+      }
+      .wallet-card:hover {
+        background: rgba(255, 255, 255, 0.2);
+        transform: translateX(5px);
+      }
+      .wallet-header {
+        display: flex;
+        align-items: center;
+        margin-bottom: 15px;
+      }
+      .wallet-icon {
+        width: 48px;
+        height: 48px;
+        margin-right: 15px;
+        border-radius: 50%;
+        background: white;
+        padding: 5px;
+      }
+      .wallet-name {
+        font-size: 1.4em;
+        font-weight: bold;
+        text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
+      }
+      .wallet-info {
+        background: rgba(0, 0, 0, 0.2);
+        padding: 15px;
+        border-radius: 10px;
+        margin-top: 10px;
+        font-family: 'Courier New', monospace;
+        font-size: 0.9em;
+        word-break: break-all;
+      }
+      .info-row {
+        margin: 8px 0;
+      }
+      .label {
+        color: #ffd700;
+        font-weight: bold;
+        margin-right: 10px;
+      }
+      .status {
+        background: rgba(255, 255, 255, 0.2);
+        padding: 15px;
+        border-radius: 10px;
+        margin: 20px 0;
+        text-align: center;
+        font-size: 1.1em;
+      }
+      .success {
+        background: rgba(76, 175, 80, 0.3);
+        border: 2px solid #4caf50;
+      }
+      .error {
+        background: rgba(244, 67, 54, 0.3);
+        border: 2px solid #f44336;
+      }
+      .warning {
+        background: rgba(255, 193, 7, 0.3);
+        border: 2px solid #ffc107;
+      }
+      code {
+        background: rgba(0, 0, 0, 0.3);
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-family: 'Courier New', monospace;
+      }
+      .section {
+        margin-top: 30px;
+      }
+      .section-title {
+        font-size: 1.5em;
+        margin-bottom: 15px;
+        border-bottom: 2px solid rgba(255, 255, 255, 0.3);
+        padding-bottom: 10px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>🔍 EIP-6963 Wallet Detection</h1>
+      <p class="subtitle">
+        Test how dApps discover wallets using the EIP-6963 standard
+      </p>
+
+      <div style="text-align: center">
+        <button onclick="requestWallets()">
+          🔄 Scan for Wallets (EIP-6963)
+        </button>
+        <button onclick="checkWindowEthereum()">
+          🪟 Check window.ethereum
+        </button>
+        <button onclick="clearResults()">🗑️ Clear Results</button>
+      </div>
+
+      <div id="status" class="status" style="display: none"></div>
+
+      <div id="wallets-section" class="section" style="display: none">
+        <div class="section-title">🎒 Detected Wallets via EIP-6963</div>
+        <div id="wallets-list"></div>
+      </div>
+
+      <div id="ethereum-section" class="section" style="display: none">
+        <div class="section-title">🌐 window.ethereum Properties</div>
+        <div id="ethereum-info"></div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">📋 Console Logs</div>
+        <div
+          id="logs"
+          class="wallet-info"
+          style="max-height: 300px; overflow-y: auto"
+        ></div>
+      </div>
+    </div>
+
+    <script>
+      const discoveredWallets = new Map();
+      const logsDiv = document.getElementById('logs');
+
+      function log(message, type = 'info') {
+        const timestamp = new Date().toLocaleTimeString();
+        const emoji =
+          type === 'success'
+            ? '✅'
+            : type === 'error'
+            ? '❌'
+            : type === 'warning'
+            ? '⚠️'
+            : 'ℹ️';
+        const color =
+          type === 'success'
+            ? '#4CAF50'
+            : type === 'error'
+            ? '#f44336'
+            : type === 'warning'
+            ? '#FFC107'
+            : '#2196F3';
+
+        const logEntry = document.createElement('div');
+        logEntry.style.marginBottom = '8px';
+        logEntry.style.borderLeft = `3px solid ${color}`;
+        logEntry.style.paddingLeft = '10px';
+        logEntry.innerHTML = `<span style="color: #ffd700;">[${timestamp}]</span> ${emoji} ${message}`;
+
+        logsDiv.appendChild(logEntry);
+        logsDiv.scrollTop = logsDiv.scrollHeight;
+
+        console.log(`[${timestamp}] ${message}`);
+      }
+
+      function showStatus(message, type = 'success') {
+        const statusDiv = document.getElementById('status');
+        statusDiv.textContent = message;
+        statusDiv.className = `status ${type}`;
+        statusDiv.style.display = 'block';
+
+        setTimeout(() => {
+          statusDiv.style.display = 'none';
+        }, 5000);
+      }
+
+      // Listen for EIP-6963 announcements
+      window.addEventListener('eip6963:announceProvider', (event) => {
+        const detail = event.detail;
+        log(
+          `📢 EIP-6963 announcement received from: ${detail.info.name}`,
+          'success'
+        );
+        log(`   UUID: ${detail.info.uuid}`);
+        log(`   RDNS: ${detail.info.rdns}`);
+
+        discoveredWallets.set(detail.info.uuid, detail);
+        displayWallets();
+      });
+
+      function requestWallets() {
+        log('🔍 Requesting wallets via EIP-6963...', 'info');
+        discoveredWallets.clear();
+
+        // Request providers
+        const event = new Event('eip6963:requestProvider');
+        window.dispatchEvent(event);
+
+        log('📤 eip6963:requestProvider event dispatched', 'info');
+
+        // Wait a bit for responses
+        setTimeout(() => {
+          if (discoveredWallets.size === 0) {
+            showStatus('⚠️ No wallets detected via EIP-6963', 'warning');
+            log('No wallets responded to EIP-6963 request', 'warning');
+          } else {
+            showStatus(
+              `✅ Found ${discoveredWallets.size} wallet(s)!`,
+              'success'
+            );
+            log(`Found ${discoveredWallets.size} wallet(s) total`, 'success');
+          }
+        }, 1000);
+      }
+
+      function displayWallets() {
+        const section = document.getElementById('wallets-section');
+        const list = document.getElementById('wallets-list');
+
+        if (discoveredWallets.size === 0) {
+          section.style.display = 'none';
+          return;
+        }
+
+        section.style.display = 'block';
+        list.innerHTML = '';
+
+        discoveredWallets.forEach((detail, uuid) => {
+          const card = document.createElement('div');
+          card.className = 'wallet-card';
+
+          const provider = detail.provider;
+
+          card.innerHTML = `
+          <div class="wallet-header">
+            <img src="${detail.info.icon}" alt="${
+            detail.info.name
+          }" class="wallet-icon" onerror="this.style.display='none'">
+            <div class="wallet-name">${detail.info.name}</div>
+          </div>
+          <div class="wallet-info">
+            <div class="info-row"><span class="label">UUID:</span>${
+              detail.info.uuid
+            }</div>
+            <div class="info-row"><span class="label">RDNS:</span>${
+              detail.info.rdns
+            }</div>
+            <div class="info-row"><span class="label">isMetaMask:</span>${
+              provider.isMetaMask || false
+            }</div>
+            <div class="info-row"><span class="label">isHeroWallet:</span>${
+              provider.isHeroWallet || false
+            }</div>
+            <div class="info-row"><span class="label">chainId:</span>${
+              provider.chainId || 'unknown'
+            }</div>
+          </div>
+          <div style="margin-top: 15px; text-align: center;">
+            <button onclick="connectToWallet('${uuid}')">🔗 Connect to This Wallet</button>
+          </div>
+        `;
+
+          list.appendChild(card);
+        });
+      }
+
+      async function connectToWallet(uuid) {
+        const detail = discoveredWallets.get(uuid);
+        if (!detail) {
+          showStatus('❌ Wallet not found!', 'error');
+          return;
+        }
+
+        log(`🔗 Connecting to ${detail.info.name}...`, 'info');
+
+        try {
+          const accounts = await detail.provider.request({
+            method: 'eth_requestAccounts',
+          });
+          log(`✅ Connected! Accounts: ${accounts.join(', ')}`, 'success');
+          showStatus(`✅ Connected to ${detail.info.name}!`, 'success');
+        } catch (error) {
+          log(`❌ Connection failed: ${error.message}`, 'error');
+          showStatus(`❌ Connection failed: ${error.message}`, 'error');
+        }
+      }
+
+      function checkWindowEthereum() {
+        const section = document.getElementById('ethereum-section');
+        const info = document.getElementById('ethereum-info');
+
+        log('🪟 Checking window.ethereum...', 'info');
+
+        if (!window.ethereum) {
+          info.innerHTML =
+            '<div class="wallet-card"><p style="color: #f44336;">❌ window.ethereum not found!</p></div>';
+          log('window.ethereum is undefined', 'error');
+          section.style.display = 'block';
+          return;
+        }
+
+        log('✅ window.ethereum exists', 'success');
+
+        const properties = {
+          isMetaMask: window.ethereum.isMetaMask,
+          isHeroWallet: window.ethereum.isHeroWallet,
+          chainId: window.ethereum.chainId,
+          selectedAddress: window.ethereum.selectedAddress,
+          networkVersion: window.ethereum.networkVersion,
+          'Providers Array': window.ethereum.providers
+            ? `${window.ethereum.providers.length} providers`
+            : 'No providers array',
+        };
+
+        let html = '<div class="wallet-card"><div class="wallet-info">';
+        for (const [key, value] of Object.entries(properties)) {
+          html += `<div class="info-row"><span class="label">${key}:</span>${
+            value !== undefined ? value : 'undefined'
+          }</div>`;
+          log(`   ${key}: ${value !== undefined ? value : 'undefined'}`);
+        }
+        html += '</div></div>';
+
+        // Check providers array
+        if (
+          window.ethereum.providers &&
+          Array.isArray(window.ethereum.providers)
+        ) {
+          html +=
+            '<div class="wallet-card"><div class="wallet-name">Providers in window.ethereum.providers:</div><div class="wallet-info">';
+          window.ethereum.providers.forEach((provider, index) => {
+            html += `<div class="info-row"><span class="label">Provider ${
+              index + 1
+            }:</span>`;
+            html += `isMetaMask: ${provider.isMetaMask}, isHeroWallet: ${provider.isHeroWallet}</div>`;
+            log(
+              `   Provider ${index + 1}: isMetaMask=${
+                provider.isMetaMask
+              }, isHeroWallet=${provider.isHeroWallet}`
+            );
+          });
+          html += '</div></div>';
+        }
+
+        info.innerHTML = html;
+        section.style.display = 'block';
+        showStatus('✅ window.ethereum checked!', 'success');
+      }
+
+      function clearResults() {
+        discoveredWallets.clear();
+        document.getElementById('wallets-section').style.display = 'none';
+        document.getElementById('ethereum-section').style.display = 'none';
+        logsDiv.innerHTML = '';
+        log('🗑️ Results cleared', 'info');
+      }
+
+      // Auto-scan on page load
+      window.addEventListener('load', () => {
+        log('📄 Page loaded, initializing...', 'info');
+        setTimeout(() => {
+          log('🚀 Auto-scanning for wallets...', 'info');
+          requestWallets();
+          checkWindowEthereum();
+        }, 500);
+      });
+
+      log('🎬 EIP-6963 test page initialized', 'success');
+    </script>
+  </body>
+</html>

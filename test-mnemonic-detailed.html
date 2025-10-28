@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>بررسی دقیق Mnemonic</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        padding: 20px;
+        direction: rtl;
+      }
+      .container {
+        max-width: 900px;
+        margin: 0 auto;
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        overflow: hidden;
+      }
+      .header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 30px;
+        text-align: center;
+      }
+      .header h1 {
+        font-size: 32px;
+        margin-bottom: 10px;
+      }
+      .header p {
+        opacity: 0.9;
+        font-size: 16px;
+      }
+      .content {
+        padding: 30px;
+      }
+      .section {
+        margin-bottom: 30px;
+      }
+      .section-title {
+        font-size: 18px;
+        font-weight: bold;
+        color: #333;
+        margin-bottom: 15px;
+        padding-bottom: 10px;
+        border-bottom: 2px solid #667eea;
+      }
+      textarea {
+        width: 100%;
+        min-height: 120px;
+        padding: 15px;
+        font-family: 'Consolas', 'Monaco', monospace;
+        font-size: 14px;
+        border: 2px solid #ddd;
+        border-radius: 8px;
+        resize: vertical;
+        direction: ltr;
+        text-align: left;
+      }
+      textarea:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+      }
+      .btn-group {
+        display: flex;
+        gap: 10px;
+        margin-top: 15px;
+      }
+      button {
+        flex: 1;
+        padding: 15px;
+        border: none;
+        border-radius: 8px;
+        font-size: 16px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: all 0.3s;
+      }
+      .btn-check {
+        background: #667eea;
+        color: white;
+      }
+      .btn-check:hover {
+        background: #5568d3;
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+      }
+      .btn-clear {
+        background: #f44336;
+        color: white;
+      }
+      .btn-clear:hover {
+        background: #d32f2f;
+      }
+      .result-box {
+        margin-top: 20px;
+        padding: 20px;
+        border-radius: 8px;
+        display: none;
+      }
+      .result-box.show {
+        display: block;
+      }
+      .result-box.success {
+        background: #d4edda;
+        border: 2px solid #c3e6cb;
+        color: #155724;
+      }
+      .result-box.error {
+        background: #f8d7da;
+        border: 2px solid #f5c6cb;
+        color: #721c24;
+      }
+      .result-box.warning {
+        background: #fff3cd;
+        border: 2px solid #ffeaa7;
+        color: #856404;
+      }
+      .result-icon {
+        font-size: 48px;
+        text-align: center;
+        margin-bottom: 15px;
+      }
+      .result-title {
+        font-size: 24px;
+        font-weight: bold;
+        text-align: center;
+        margin-bottom: 15px;
+      }
+      .result-detail {
+        font-size: 14px;
+        line-height: 1.6;
+      }
+      .word-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+        gap: 10px;
+        margin-top: 15px;
+      }
+      .word-item {
+        padding: 10px;
+        border-radius: 6px;
+        text-align: center;
+        font-family: 'Consolas', 'Monaco', monospace;
+        font-size: 13px;
+        border: 2px solid;
+      }
+      .word-item.valid {
+        background: #d4edda;
+        border-color: #c3e6cb;
+        color: #155724;
+      }
+      .word-item.invalid {
+        background: #f8d7da;
+        border-color: #f5c6cb;
+        color: #721c24;
+      }
+      .word-number {
+        font-size: 10px;
+        opacity: 0.7;
+        display: block;
+        margin-bottom: 3px;
+      }
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 15px;
+        margin: 20px 0;
+      }
+      .stat-card {
+        background: #f8f9fa;
+        padding: 20px;
+        border-radius: 8px;
+        text-align: center;
+      }
+      .stat-label {
+        font-size: 12px;
+        color: #666;
+        margin-bottom: 5px;
+      }
+      .stat-value {
+        font-size: 32px;
+        font-weight: bold;
+        color: #333;
+      }
+      .info-box {
+        background: #e7f3ff;
+        border: 2px solid #b3d9ff;
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+      }
+      .info-box strong {
+        color: #0066cc;
+      }
+      .test-samples {
+        margin-top: 30px;
+      }
+      .sample-item {
+        background: #f8f9fa;
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 10px;
+        cursor: pointer;
+        border: 2px solid transparent;
+        transition: all 0.2s;
+      }
+      .sample-item:hover {
+        border-color: #667eea;
+        transform: translateX(-5px);
+      }
+      .sample-title {
+        font-weight: bold;
+        margin-bottom: 5px;
+        color: #667eea;
+      }
+      .sample-text {
+        font-family: 'Consolas', 'Monaco', monospace;
+        font-size: 12px;
+        color: #666;
+        direction: ltr;
+        text-align: left;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>🔍 بررسی دقیق Mnemonic</h1>
+        <p>هر کلمه را جداگانه بررسی می‌کند</p>
+      </div>
+
+      <div class="content">
+        <div class="info-box">
+          <strong>📌 نکته:</strong> این صفحه دقیقاً همان چیزی را که wallet شما
+          استفاده می‌کند، تست می‌کند. هر کلمه را با لیست 2048 کلمه BIP39 مقایسه
+          می‌کند.
+        </div>
+
+        <div class="section">
+          <div class="section-title">🔑 Mnemonic شما را وارد کنید</div>
+          <textarea
+            id="mnemonicInput"
+            placeholder="mnemonic خود را اینجا paste کنید...
+
+مثال:
+bottom drive obey lake curtain smoke basket hold race lonely fit walk"
+          ></textarea>
+
+          <div class="btn-group">
+            <button class="btn-check" onclick="checkMnemonic()">
+              ✓ بررسی کن
+            </button>
+            <button class="btn-clear" onclick="clearAll()">✕ پاک کن</button>
+          </div>
+        </div>
+
+        <div id="resultBox" class="result-box">
+          <!-- Results will be inserted here -->
+        </div>
+
+        <div class="test-samples">
+          <div class="section-title">📋 نمونه‌های تست</div>
+
+          <div
+            class="sample-item"
+            onclick="fillSample('bottom drive obey lake curtain smoke basket hold race lonely fit walk')"
+          >
+            <div class="sample-title">✅ معتبر - 12 کلمه (پیش‌فرض تست)</div>
+            <div class="sample-text">
+              bottom drive obey lake curtain smoke basket hold race lonely fit
+              walk
+            </div>
+          </div>
+
+          <div
+            class="sample-item"
+            onclick="fillSample('abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about')"
+          >
+            <div class="sample-title">✅ معتبر - 12 کلمه (استاندارد)</div>
+            <div class="sample-text">
+              abandon abandon abandon abandon abandon abandon abandon abandon
+              abandon abandon abandon about
+            </div>
+          </div>
+
+          <div
+            class="sample-item"
+            onclick="fillSample('test abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about')"
+          >
+            <div class="sample-title">❌ نامعتبر - checksum اشتباه</div>
+            <div class="sample-text">
+              test abandon abandon abandon abandon abandon abandon abandon
+              abandon abandon abandon about
+            </div>
+          </div>
+
+          <div
+            class="sample-item"
+            onclick="fillSample('word1 word2 word3 word4 word5 word6 word7 word8 word9 word10 word11 word12')"
+          >
+            <div class="sample-title">❌ نامعتبر - کلمات BIP39 نیستند</div>
+            <div class="sample-text">
+              word1 word2 word3 word4 word5 word6 word7 word8 word9 word10
+              word11 word12
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script type="module">
+      import * as bip39 from 'https://cdn.jsdelivr.net/npm/bip39@3.1.0/+esm';
+      window.bip39 = bip39;
+
+      window.checkMnemonic = function () {
+        const input = document.getElementById('mnemonicInput').value;
+        const resultBox = document.getElementById('resultBox');
+
+        if (!input.trim()) {
+          showResult('error', '❌', 'خطا', 'لطفاً mnemonic خود را وارد کنید');
+          return;
+        }
+
+        // Clean mnemonic (same as wallet)
+        const cleaned = input.trim().toLowerCase().replace(/\s+/g, ' ');
+        const words = cleaned.split(' ');
+        const wordCount = words.length;
+
+        console.log('🔍 Input:', input);
+        console.log('🔍 Cleaned:', cleaned);
+        console.log('🔍 Words:', words);
+
+        // Get BIP39 wordlist
+        const wordlist = bip39.wordlists.english;
+
+        // Check each word
+        const validWords = [];
+        const invalidWords = [];
+
+        words.forEach((word, index) => {
+          if (wordlist.includes(word)) {
+            validWords.push({ index: index + 1, word });
+          } else {
+            invalidWords.push({ index: index + 1, word });
+          }
+        });
+
+        // Generate word grid HTML
+        let wordGridHTML = '<div class="word-grid">';
+        words.forEach((word, index) => {
+          const isValid = wordlist.includes(word);
+          wordGridHTML += `
+                    <div class="word-item ${isValid ? 'valid' : 'invalid'}">
+                        <span class="word-number">#${index + 1}</span>
+                        ${isValid ? '✓' : '✗'} ${word}
+                    </div>
+                `;
+        });
+        wordGridHTML += '</div>';
+
+        // Show stats
+        const statsHTML = `
+                <div class="stats">
+                    <div class="stat-card">
+                        <div class="stat-label">تعداد کلمات</div>
+                        <div class="stat-value">${wordCount}</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">کلمات معتبر</div>
+                        <div class="stat-value" style="color: #28a745;">${validWords.length}</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">کلمات نامعتبر</div>
+                        <div class="stat-value" style="color: #dc3545;">${invalidWords.length}</div>
+                    </div>
+                </div>
+            `;
+
+        // If there are invalid words
+        if (invalidWords.length > 0) {
+          const invalidList = invalidWords
+            .map((w) => `#${w.index}: "${w.word}"`)
+            .join('<br>');
+          showResult(
+            'error',
+            '❌',
+            'کلمات نامعتبر BIP39 پیدا شد',
+            `<div class="result-detail">
+                        ${statsHTML}
+                        <p style="margin: 15px 0;">این کلمات در لیست BIP39 نیستند:</p>
+                        <div style="background: #fff; padding: 15px; border-radius: 6px; direction: ltr; text-align: left;">
+                            ${invalidList}
+                        </div>
+                        <p style="margin-top: 15px;">💡 لطفاً املای کلمات را بررسی کنید یا از mnemonic صحیح استفاده کنید.</p>
+                        ${wordGridHTML}
+                    </div>`
+          );
+          return;
+        }
+
+        // Check word count
+        if (wordCount !== 12 && wordCount !== 24) {
+          showResult(
+            'warning',
+            '⚠️',
+            'تعداد کلمات اشتباه',
+            `<div class="result-detail">
+                        ${statsHTML}
+                        <p>تعداد کلمات باید 12 یا 24 باشد، اما ${wordCount} کلمه دارید.</p>
+                        ${wordGridHTML}
+                    </div>`
+          );
+          return;
+        }
+
+        // Validate with BIP39 (checksum)
+        const isValid = bip39.validateMnemonic(cleaned);
+
+        if (isValid) {
+          showResult(
+            'success',
+            '✅',
+            'Mnemonic معتبر است!',
+            `<div class="result-detail">
+                        ${statsHTML}
+                        <p style="margin: 15px 0;">✓ همه کلمات معتبر BIP39 هستند<br>
+                        ✓ تعداد کلمات صحیح است (${wordCount} کلمه)<br>
+                        ✓ Checksum معتبر است</p>
+                        <div style="background: #fff; padding: 15px; border-radius: 6px; margin-top: 15px;">
+                            <strong>Mnemonic تمیز شده:</strong><br>
+                            <code style="direction: ltr; display: block; margin-top: 10px;">${cleaned}</code>
+                        </div>
+                        ${wordGridHTML}
+                        <p style="margin-top: 20px; color: #28a745; font-weight: bold;">
+                            🎉 می‌توانید این mnemonic را در wallet استفاده کنید!
+                        </p>
+                    </div>`
+          );
+        } else {
+          showResult(
+            'error',
+            '❌',
+            'Checksum نامعتبر',
+            `<div class="result-detail">
+                        ${statsHTML}
+                        <p style="margin: 15px 0;">✓ همه کلمات معتبر BIP39 هستند<br>
+                        ✓ تعداد کلمات صحیح است (${wordCount} کلمه)<br>
+                        ✗ Checksum معتبر نیست</p>
+                        ${wordGridHTML}
+                        <p style="margin-top: 15px;">
+                            ⚠️ این به این معنی است که:<br>
+                            • ممکن است ترتیب کلمات اشتباه باشد<br>
+                            • ممکن است یک یا چند کلمه اشتباه باشد<br>
+                            • Mnemonic به درستی از منبع اصلی کپی نشده است
+                        </p>
+                        <p style="margin-top: 15px; font-weight: bold; color: #dc3545;">
+                            💡 لطفاً از backup اصلی خود استفاده کنید.
+                        </p>
+                    </div>`
+          );
+        }
+      };
+
+      window.showResult = function (type, icon, title, content) {
+        const resultBox = document.getElementById('resultBox');
+        resultBox.className = `result-box ${type} show`;
+        resultBox.innerHTML = `
+                <div class="result-icon">${icon}</div>
+                <div class="result-title">${title}</div>
+                ${content}
+            `;
+        resultBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      };
+
+      window.clearAll = function () {
+        document.getElementById('mnemonicInput').value = '';
+        document.getElementById('resultBox').className = 'result-box';
+        document.getElementById('resultBox').innerHTML = '';
+      };
+
+      window.fillSample = function (mnemonic) {
+        document.getElementById('mnemonicInput').value = mnemonic;
+        document.getElementById('resultBox').className = 'result-box';
+        document.getElementById('resultBox').innerHTML = '';
+        document
+          .getElementById('mnemonicInput')
+          .scrollIntoView({ behavior: 'smooth', block: 'center' });
+      };
+
+      console.log('✅ Mnemonic checker loaded');
+      console.log('📦 BIP39 wordlist size:', bip39.wordlists.english.length);
+    </script>
+  </body>
+</html>

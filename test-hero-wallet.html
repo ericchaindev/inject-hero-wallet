@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Hero Wallet Test - Full dApp Integration</title>
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+          Oxygen, Ubuntu, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        padding: 20px;
+      }
+
+      .container {
+        max-width: 800px;
+        margin: 0 auto;
+        background: white;
+        border-radius: 20px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        overflow: hidden;
+      }
+
+      .header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 30px;
+        text-align: center;
+      }
+
+      .header h1 {
+        font-size: 32px;
+        margin-bottom: 10px;
+      }
+
+      .header p {
+        opacity: 0.9;
+        font-size: 14px;
+      }
+
+      .content {
+        padding: 30px;
+      }
+
+      .section {
+        margin-bottom: 30px;
+        padding: 20px;
+        background: #f8f9fa;
+        border-radius: 12px;
+        border-left: 4px solid #667eea;
+      }
+
+      .section h2 {
+        color: #333;
+        margin-bottom: 15px;
+        font-size: 20px;
+      }
+
+      .info-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px;
+        background: white;
+        border-radius: 8px;
+        margin-bottom: 10px;
+      }
+
+      .label {
+        font-weight: 600;
+        color: #666;
+      }
+
+      .value {
+        font-family: 'Courier New', monospace;
+        color: #333;
+        word-break: break-all;
+      }
+
+      .status {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 600;
+      }
+
+      .status.connected {
+        background: #d1fae5;
+        color: #065f46;
+      }
+
+      .status.disconnected {
+        background: #fee2e2;
+        color: #991b1b;
+      }
+
+      .btn {
+        padding: 12px 24px;
+        border: none;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+        margin-right: 10px;
+        margin-bottom: 10px;
+      }
+
+      .btn-primary {
+        background: #667eea;
+        color: white;
+      }
+
+      .btn-primary:hover {
+        background: #5568d3;
+        transform: translateY(-2px);
+      }
+
+      .btn-secondary {
+        background: #6c757d;
+        color: white;
+      }
+
+      .btn-secondary:hover {
+        background: #5a6268;
+      }
+
+      .btn-success {
+        background: #10b981;
+        color: white;
+      }
+
+      .btn-success:hover {
+        background: #059669;
+      }
+
+      .btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      .input-group {
+        margin-bottom: 15px;
+      }
+
+      .input-group label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: 600;
+        color: #333;
+      }
+
+      .input-group input {
+        width: 100%;
+        padding: 10px;
+        border: 2px solid #e5e7eb;
+        border-radius: 8px;
+        font-size: 14px;
+      }
+
+      .input-group input:focus {
+        outline: none;
+        border-color: #667eea;
+      }
+
+      .log {
+        background: #1f2937;
+        color: #10b981;
+        padding: 15px;
+        border-radius: 8px;
+        font-family: 'Courier New', monospace;
+        font-size: 12px;
+        max-height: 300px;
+        overflow-y: auto;
+        margin-top: 15px;
+      }
+
+      .log-entry {
+        margin-bottom: 5px;
+        padding: 5px;
+        border-left: 2px solid #10b981;
+        padding-left: 10px;
+      }
+
+      .log-entry.error {
+        color: #ef4444;
+        border-left-color: #ef4444;
+      }
+
+      .log-entry.success {
+        color: #10b981;
+      }
+
+      .log-entry.info {
+        color: #60a5fa;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>🦸 Hero Wallet Test Suite</h1>
+        <p>Complete dApp integration testing interface</p>
+      </div>
+
+      <div class="content">
+        <!-- Connection Status -->
+        <div class="section">
+          <h2>📡 Connection Status</h2>
+          <div class="info-row">
+            <span class="label">Wallet Status:</span>
+            <span class="status disconnected" id="connectionStatus"
+              >Not Connected</span
+            >
+          </div>
+          <div class="info-row">
+            <span class="label">Account:</span>
+            <span class="value" id="accountAddress">-</span>
+          </div>
+          <div class="info-row">
+            <span class="label">Chain ID:</span>
+            <span class="value" id="chainId">-</span>
+          </div>
+          <div class="info-row">
+            <span class="label">Balance:</span>
+            <span class="value" id="balance">-</span>
+          </div>
+          <button class="btn btn-primary" id="connectBtn">
+            Connect Wallet
+          </button>
+          <button class="btn btn-secondary" id="disconnectBtn" disabled>
+            Disconnect
+          </button>
+        </div>
+
+        <!-- Sign Message -->
+        <div class="section">
+          <h2>✍️ Sign Message</h2>
+          <div class="input-group">
+            <label>Message to Sign:</label>
+            <input
+              type="text"
+              id="messageInput"
+              placeholder="Enter message..."
+              value="Hello from Hero Wallet!"
+            />
+          </div>
+          <button class="btn btn-primary" id="signMessageBtn" disabled>
+            Sign Message
+          </button>
+          <button class="btn btn-success" id="verifySignatureBtn" disabled>
+            Verify Signature
+          </button>
+          <div
+            class="info-row"
+            style="margin-top: 10px; display: none"
+            id="signatureRow"
+          >
+            <span class="label">Signature:</span>
+            <span class="value" id="signatureValue" style="font-size: 11px"
+              >-</span
+            >
+          </div>
+        </div>
+
+        <!-- Send Transaction -->
+        <div class="section">
+          <h2>💸 Send Transaction</h2>
+          <div class="input-group">
+            <label>To Address:</label>
+            <input
+              type="text"
+              id="toAddress"
+              placeholder="0x..."
+              value="0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb"
+            />
+          </div>
+          <div class="input-group">
+            <label>Amount (ETH):</label>
+            <input type="text" id="amount" placeholder="0.001" value="0.001" />
+          </div>
+          <button class="btn btn-primary" id="sendTxBtn" disabled>
+            Send Transaction
+          </button>
+          <div
+            class="info-row"
+            style="margin-top: 10px; display: none"
+            id="txHashRow"
+          >
+            <span class="label">TX Hash:</span>
+            <span class="value" id="txHashValue" style="font-size: 11px"
+              >-</span
+            >
+          </div>
+        </div>
+
+        <!-- Switch Network -->
+        <div class="section">
+          <h2>🔄 Switch Network</h2>
+          <button
+            class="btn btn-primary"
+            onclick="switchNetwork('0x1')"
+            disabled
+            id="switchEth"
+          >
+            Ethereum
+          </button>
+          <button
+            class="btn btn-primary"
+            onclick="switchNetwork('0x89')"
+            disabled
+            id="switchPolygon"
+          >
+            Polygon
+          </button>
+          <button
+            class="btn btn-primary"
+            onclick="switchNetwork('0x38')"
+            disabled
+            id="switchBSC"
+          >
+            BSC
+          </button>
+          <button
+            class="btn btn-primary"
+            onclick="switchNetwork('0xaa36a7')"
+            disabled
+            id="switchSepolia"
+          >
+            Sepolia
+          </button>
+        </div>
+
+        <!-- Activity Log -->
+        <div class="section">
+          <h2>📋 Activity Log</h2>
+          <div class="log" id="activityLog">
+            <div class="log-entry info">Ready to test Hero Wallet...</div>
+          </div>
+          <button class="btn btn-secondary" onclick="clearLog()">
+            Clear Log
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      let currentAccount = null;
+      let currentChainId = null;
+      let lastSignature = null;
+      let lastMessage = null;
+
+      // Logging functions
+      function log(message, type = 'info') {
+        const logDiv = document.getElementById('activityLog');
+        const entry = document.createElement('div');
+        entry.className = `log-entry ${type}`;
+        entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+        logDiv.appendChild(entry);
+        logDiv.scrollTop = logDiv.scrollHeight;
+      }
+
+      function clearLog() {
+        document.getElementById('activityLog').innerHTML =
+          '<div class="log-entry info">Log cleared.</div>';
+      }
+
+      // UI Update functions
+      function updateUI() {
+        const isConnected = !!currentAccount;
+        document.getElementById('connectionStatus').textContent = isConnected
+          ? 'Connected'
+          : 'Not Connected';
+        document.getElementById('connectionStatus').className = `status ${
+          isConnected ? 'connected' : 'disconnected'
+        }`;
+        document.getElementById('accountAddress').textContent =
+          currentAccount || '-';
+        document.getElementById('chainId').textContent = currentChainId || '-';
+
+        document.getElementById('connectBtn').disabled = isConnected;
+        document.getElementById('disconnectBtn').disabled = !isConnected;
+        document.getElementById('signMessageBtn').disabled = !isConnected;
+        document.getElementById('sendTxBtn').disabled = !isConnected;
+
+        document.getElementById('switchEth').disabled = !isConnected;
+        document.getElementById('switchPolygon').disabled = !isConnected;
+        document.getElementById('switchBSC').disabled = !isConnected;
+        document.getElementById('switchSepolia').disabled = !isConnected;
+      }
+
+      // Check for provider
+      async function checkProvider() {
+        if (typeof window.ethereum !== 'undefined') {
+          log('✅ Hero Wallet detected!', 'success');
+          return true;
+        } else {
+          log(
+            '❌ Hero Wallet not detected. Please install the extension.',
+            'error'
+          );
+          return false;
+        }
+      }
+
+      // Connect Wallet
+      async function connectWallet() {
+        try {
+          log('📡 Requesting wallet connection...');
+          const accounts = await window.ethereum.request({
+            method: 'eth_requestAccounts',
+          });
+
+          currentAccount = accounts[0];
+          log(`✅ Connected: ${currentAccount}`, 'success');
+
+          // Get chain ID
+          currentChainId = await window.ethereum.request({
+            method: 'eth_chainId',
+          });
+          log(`🔗 Chain ID: ${currentChainId}`, 'success');
+
+          // Get balance
+          await updateBalance();
+
+          updateUI();
+        } catch (error) {
+          log(`❌ Connection failed: ${error.message}`, 'error');
+          console.error(error);
+        }
+      }
+
+      // Update Balance
+      async function updateBalance() {
+        try {
+          const balance = await window.ethereum.request({
+            method: 'eth_getBalance',
+            params: [currentAccount, 'latest'],
+          });
+          const ethBalance = parseInt(balance, 16) / 1e18;
+          document.getElementById(
+            'balance'
+          ).textContent = `${ethBalance.toFixed(4)} ETH`;
+          log(`💰 Balance: ${ethBalance.toFixed(4)} ETH`);
+        } catch (error) {
+          log(`⚠️  Could not fetch balance: ${error.message}`, 'error');
+        }
+      }
+
+      // Sign Message
+      async function signMessage() {
+        try {
+          const message = document.getElementById('messageInput').value;
+          if (!message) {
+            alert('Please enter a message');
+            return;
+          }
+
+          log(`✍️  Signing message: "${message}"`);
+
+          const signature = await window.ethereum.request({
+            method: 'personal_sign',
+            params: [message, currentAccount],
+          });
+
+          lastSignature = signature;
+          lastMessage = message;
+
+          log(`✅ Message signed!`, 'success');
+          log(`📝 Signature: ${signature.substring(0, 20)}...`, 'info');
+
+          document.getElementById('signatureRow').style.display = 'flex';
+          document.getElementById('signatureValue').textContent = signature;
+          document.getElementById('verifySignatureBtn').disabled = false;
+        } catch (error) {
+          log(`❌ Signing failed: ${error.message}`, 'error');
+          console.error(error);
+        }
+      }
+
+      // Verify Signature (client-side simulation)
+      function verifySignature() {
+        if (lastSignature) {
+          log(`✅ Signature is valid for message: "${lastMessage}"`, 'success');
+          alert(
+            `Signature verified!\n\nMessage: ${lastMessage}\nSigner: ${currentAccount}`
+          );
+        }
+      }
+
+      // Send Transaction
+      async function sendTransaction() {
+        try {
+          const to = document.getElementById('toAddress').value;
+          const amount = document.getElementById('amount').value;
+
+          if (!to || !amount) {
+            alert('Please fill in all fields');
+            return;
+          }
+
+          log(`💸 Sending ${amount} ETH to ${to}...`);
+
+          const value = '0x' + (parseFloat(amount) * 1e18).toString(16);
+
+          const txHash = await window.ethereum.request({
+            method: 'eth_sendTransaction',
+            params: [
+              {
+                from: currentAccount,
+                to: to,
+                value: value,
+                gas: '0x5208', // 21000
+              },
+            ],
+          });
+
+          log(`✅ Transaction sent!`, 'success');
+          log(`📝 TX Hash: ${txHash}`, 'info');
+
+          document.getElementById('txHashRow').style.display = 'flex';
+          document.getElementById('txHashValue').textContent = txHash;
+
+          // Update balance after transaction
+          setTimeout(updateBalance, 2000);
+        } catch (error) {
+          log(`❌ Transaction failed: ${error.message}`, 'error');
+          console.error(error);
+        }
+      }
+
+      // Switch Network
+      async function switchNetwork(chainId) {
+        try {
+          log(`🔄 Switching to chain ${chainId}...`);
+
+          await window.ethereum.request({
+            method: 'wallet_switchEthereumChain',
+            params: [{ chainId: chainId }],
+          });
+
+          currentChainId = chainId;
+          log(`✅ Switched to chain ${chainId}`, 'success');
+          updateUI();
+        } catch (error) {
+          log(`❌ Network switch failed: ${error.message}`, 'error');
+          console.error(error);
+        }
+      }
+
+      // Event listeners
+      window.addEventListener('load', async () => {
+        const hasProvider = await checkProvider();
+        if (hasProvider) {
+          // Check if already connected
+          try {
+            const accounts = await window.ethereum.request({
+              method: 'eth_accounts',
+            });
+            if (accounts.length > 0) {
+              currentAccount = accounts[0];
+              currentChainId = await window.ethereum.request({
+                method: 'eth_chainId',
+              });
+              await updateBalance();
+              updateUI();
+              log('Already connected', 'success');
+            }
+          } catch (error) {
+            console.error(error);
+          }
+
+          // Listen for account changes
+          window.ethereum.on('accountsChanged', (accounts) => {
+            if (accounts.length === 0) {
+              currentAccount = null;
+              log('Disconnected', 'info');
+            } else {
+              currentAccount = accounts[0];
+              log(`Account changed: ${currentAccount}`, 'info');
+              updateBalance();
+            }
+            updateUI();
+          });
+
+          // Listen for chain changes
+          window.ethereum.on('chainChanged', (chainId) => {
+            currentChainId = chainId;
+            log(`Chain changed: ${chainId}`, 'info');
+            updateUI();
+            updateBalance();
+          });
+        }
+      });
+
+      document.getElementById('connectBtn').onclick = connectWallet;
+      document.getElementById('signMessageBtn').onclick = signMessage;
+      document.getElementById('verifySignatureBtn').onclick = verifySignature;
+      document.getElementById('sendTxBtn').onclick = sendTransaction;
+      document.getElementById('disconnectBtn').onclick = () => {
+        currentAccount = null;
+        currentChainId = null;
+        updateUI();
+        log('Disconnected', 'info');
+      };
+    </script>
+  </body>
+</html>

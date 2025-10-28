@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>🔍 تشخیص دقیق مشکل Mnemonic</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        padding: 20px;
+      }
+      .container {
+        max-width: 900px;
+        margin: 0 auto;
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        overflow: hidden;
+      }
+      .header {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        color: white;
+        padding: 30px;
+        text-align: center;
+      }
+      .content {
+        padding: 30px;
+      }
+      textarea {
+        width: 100%;
+        min-height: 150px;
+        padding: 15px;
+        font-family: 'Consolas', monospace;
+        font-size: 15px;
+        border: 3px solid #ddd;
+        border-radius: 8px;
+        direction: ltr;
+        text-align: left;
+        line-height: 2;
+      }
+      textarea:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.2);
+      }
+      .btn {
+        width: 100%;
+        padding: 18px;
+        margin-top: 15px;
+        border: none;
+        border-radius: 8px;
+        font-size: 18px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: all 0.3s;
+      }
+      .btn-check {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+      }
+      .btn-check:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+      }
+      .result {
+        margin-top: 20px;
+        padding: 25px;
+        border-radius: 12px;
+        display: none;
+      }
+      .result.show {
+        display: block;
+      }
+      .result.error {
+        background: #fee;
+        border: 3px solid #fcc;
+      }
+      .result.success {
+        background: #efe;
+        border: 3px solid #cfc;
+      }
+      .result.warning {
+        background: #ffe;
+        border: 3px solid #fec;
+      }
+      .word-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 10px;
+        margin: 20px 0;
+      }
+      .word-box {
+        padding: 15px;
+        border-radius: 8px;
+        text-align: center;
+        font-family: 'Consolas', monospace;
+        font-size: 14px;
+        font-weight: bold;
+        border: 3px solid;
+      }
+      .word-box.valid {
+        background: #d4edda;
+        border-color: #28a745;
+        color: #155724;
+      }
+      .word-box.invalid {
+        background: #f8d7da;
+        border-color: #dc3545;
+        color: #721c24;
+      }
+      .word-num {
+        display: block;
+        font-size: 11px;
+        opacity: 0.6;
+        margin-bottom: 5px;
+      }
+      .big-icon {
+        font-size: 60px;
+        text-align: center;
+        margin-bottom: 15px;
+      }
+      .title {
+        font-size: 28px;
+        font-weight: bold;
+        text-align: center;
+        margin-bottom: 20px;
+      }
+      .info-box {
+        background: #e7f3ff;
+        border: 3px solid #4dabf7;
+        padding: 20px;
+        border-radius: 8px;
+        margin: 20px 0;
+        font-size: 15px;
+        line-height: 1.8;
+      }
+      .error-detail {
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        margin: 15px 0;
+        direction: ltr;
+        text-align: left;
+        font-family: 'Consolas', monospace;
+      }
+      code {
+        background: #f4f4f4;
+        padding: 3px 8px;
+        border-radius: 4px;
+        font-family: 'Consolas', monospace;
+      }
+      .highlight {
+        background: yellow;
+        padding: 2px 5px;
+        border-radius: 3px;
+        font-weight: bold;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>🔍 تشخیص مشکل Mnemonic</h1>
+        <p style="margin-top: 10px; font-size: 16px">
+          برای Trust Wallet و سایر Wallet ها
+        </p>
+      </div>
+
+      <div class="content">
+        <div class="info-box">
+          <strong>📌 راهنما:</strong><br />
+          • کلمات 12 گانه Trust Wallet خود را دقیقاً همانطور که هست paste
+          کنید<br />
+          • هر کلمه را جداگانه بررسی می‌کنیم<br />
+          • اگر یک حرف هم اشتباه باشد، نشان می‌دهیم<br />
+          •
+          <span class="highlight"
+            >حتی یک حرف اشتباه باعث checksum error می‌شود!</span
+          >
+        </div>
+
+        <textarea
+          id="input"
+          placeholder="12 کلمه Trust Wallet خود را اینجا paste کنید...
+
+مثال:
+bottom drive obey lake curtain smoke basket hold race lonely fit walk"
+        ></textarea>
+
+        <button class="btn btn-check" onclick="check()">🔍 بررسی دقیق</button>
+
+        <div id="result" class="result"></div>
+      </div>
+    </div>
+
+    <script type="module">
+      import * as bip39 from 'https://cdn.jsdelivr.net/npm/bip39@3.1.0/+esm';
+      window.bip39 = bip39;
+
+      // لیست کامل 2048 کلمه BIP39
+      const wordlist = bip39.wordlists.english;
+
+      // تابع پیدا کردن نزدیک‌ترین کلمه (برای تایپ اشتباه)
+      function findClosestWord(word) {
+        let closest = '';
+        let minDistance = Infinity;
+
+        wordlist.forEach((validWord) => {
+          const distance = levenshteinDistance(word, validWord);
+          if (distance < minDistance) {
+            minDistance = distance;
+            closest = validWord;
+          }
+        });
+
+        return { word: closest, distance: minDistance };
+      }
+
+      // محاسبه فاصله Levenshtein (برای تشخیص غلط املایی)
+      function levenshteinDistance(str1, str2) {
+        const matrix = [];
+        for (let i = 0; i <= str2.length; i++) {
+          matrix[i] = [i];
+        }
+        for (let j = 0; j <= str1.length; j++) {
+          matrix[0][j] = j;
+        }
+        for (let i = 1; i <= str2.length; i++) {
+          for (let j = 1; j <= str1.length; j++) {
+            if (str2.charAt(i - 1) === str1.charAt(j - 1)) {
+              matrix[i][j] = matrix[i - 1][j - 1];
+            } else {
+              matrix[i][j] = Math.min(
+                matrix[i - 1][j - 1] + 1,
+                matrix[i][j - 1] + 1,
+                matrix[i - 1][j] + 1
+              );
+            }
+          }
+        }
+        return matrix[str2.length][str1.length];
+      }
+
+      window.check = function () {
+        const input = document.getElementById('input').value;
+        const result = document.getElementById('result');
+
+        if (!input.trim()) {
+          result.className = 'result error show';
+          result.innerHTML = `
+                    <div class="big-icon">⚠️</div>
+                    <div class="title">لطفاً mnemonic را وارد کنید</div>
+                `;
+          return;
+        }
+
+        // پاکسازی
+        const cleaned = input.trim().toLowerCase().replace(/\s+/g, ' ');
+        const words = cleaned.split(' ');
+
+        console.log('🔍 Input:', input);
+        console.log('🔍 Cleaned:', cleaned);
+        console.log('🔍 Words:', words);
+
+        // بررسی تعداد
+        if (words.length !== 12 && words.length !== 24) {
+          result.className = 'result error show';
+          result.innerHTML = `
+                    <div class="big-icon">❌</div>
+                    <div class="title">تعداد کلمات اشتباه است!</div>
+                    <p style="text-align: center; font-size: 18px; margin: 15px 0;">
+                        شما <strong>${words.length}</strong> کلمه دارید<br>
+                        ولی باید <strong>12</strong> یا <strong>24</strong> کلمه باشد
+                    </p>
+                    <div class="error-detail">
+                        <strong>کلمات شما:</strong><br>
+                        ${words.map((w, i) => `${i + 1}. ${w}`).join('<br>')}
+                    </div>
+                `;
+          return;
+        }
+
+        // بررسی هر کلمه
+        const invalidWords = [];
+        const wordBoxes = words.map((word, index) => {
+          const isValid = wordlist.includes(word);
+
+          if (!isValid) {
+            const closest = findClosestWord(word);
+            invalidWords.push({
+              index: index + 1,
+              wrong: word,
+              suggestion: closest.word,
+              distance: closest.distance,
+            });
+          }
+
+          return {
+            index: index + 1,
+            word: word,
+            valid: isValid,
+          };
+        });
+
+        // اگر کلمه نامعتبر وجود داشت
+        if (invalidWords.length > 0) {
+          result.className = 'result error show';
+
+          let suggestionsHTML = invalidWords
+            .map((inv) => {
+              return `
+                        <div style="margin: 15px 0; padding: 15px; background: #fff3cd; border-radius: 8px;">
+                            <div style="font-size: 16px; margin-bottom: 10px;">
+                                <strong>کلمه ${inv.index}:</strong>
+                            </div>
+                            <div style="font-size: 18px;">
+                                ❌ اشتباه: <code style="background: #f8d7da; color: #721c24; padding: 5px 10px;">${
+                                  inv.wrong
+                                }</code>
+                            </div>
+                            <div style="font-size: 18px; margin-top: 10px;">
+                                ✅ پیشنهاد: <code style="background: #d4edda; color: #155724; padding: 5px 10px;">${
+                                  inv.suggestion
+                                }</code>
+                            </div>
+                            ${
+                              inv.distance === 1
+                                ? '<div style="margin-top: 8px; color: #856404;">💡 فقط یک حرف اشتباه است!</div>'
+                                : ''
+                            }
+                        </div>
+                    `;
+            })
+            .join('');
+
+          result.innerHTML = `
+                    <div class="big-icon">❌</div>
+                    <div class="title">کلمات نامعتبر پیدا شد!</div>
+                    <p style="text-align: center; font-size: 18px; margin: 15px 0;">
+                        <strong>${invalidWords.length}</strong> کلمه اشتباه است
+                    </p>
+                    ${suggestionsHTML}
+                    <div style="margin-top: 30px;">
+                        <strong style="display: block; margin-bottom: 15px; font-size: 18px;">همه کلمات:</strong>
+                        <div class="word-grid">
+                            ${wordBoxes
+                              .map(
+                                (w) => `
+                                <div class="word-box ${
+                                  w.valid ? 'valid' : 'invalid'
+                                }">
+                                    <span class="word-num">#${w.index}</span>
+                                    ${w.valid ? '✓' : '✗'} ${w.word}
+                                </div>
+                            `
+                              )
+                              .join('')}
+                        </div>
+                    </div>
+                    <div class="info-box" style="margin-top: 20px;">
+                        <strong>🔧 چطور درست کنم؟</strong><br>
+                        1. کلمات اشتباه را با پیشنهادها جایگزین کنید<br>
+                        2. دوباره از Trust Wallet کپی کنید<br>
+                        3. مطمئن شوید همه حروف درست است
+                    </div>
+                `;
+          return;
+        }
+
+        // اگر همه کلمات valid بودند، checksum را بررسی کنیم
+        const isValidChecksum = bip39.validateMnemonic(cleaned);
+
+        if (!isValidChecksum) {
+          result.className = 'result warning show';
+          result.innerHTML = `
+                    <div class="big-icon">⚠️</div>
+                    <div class="title">Checksum نامعتبر!</div>
+                    <p style="text-align: center; font-size: 16px; margin: 20px 0; line-height: 1.8;">
+                        همه کلمات صحیح هستند ولی <strong>ترتیب آنها اشتباه است</strong><br>
+                        یا این mnemonic به درستی از Trust Wallet گرفته نشده
+                    </p>
+                    <div class="info-box">
+                        <strong>🤔 این یعنی چی؟</strong><br><br>
+                        در BIP39، آخرین کلمه (یا بخشی از آن) یک checksum است.<br>
+                        اگر ترتیب کلمات اشتباه باشد، checksum درست نمی‌شود.<br><br>
+                        <strong>💡 راه حل:</strong><br>
+                        1. از Trust Wallet دوباره mnemonic را کپی کنید<br>
+                        2. مطمئن شوید ترتیب کلمات درست است<br>
+                        3. هیچ کلمه‌ای را جابجا نکنید<br>
+                        4. دقیقاً همانطور که Trust Wallet نشان می‌دهد، وارد کنید
+                    </div>
+                    <div style="margin-top: 20px;">
+                        <strong style="display: block; margin-bottom: 15px;">کلمات شما (همه صحیح هستند):</strong>
+                        <div class="word-grid">
+                            ${wordBoxes
+                              .map(
+                                (w) => `
+                                <div class="word-box valid">
+                                    <span class="word-num">#${w.index}</span>
+                                    ✓ ${w.word}
+                                </div>
+                            `
+                              )
+                              .join('')}
+                        </div>
+                    </div>
+                    <div class="error-detail" style="margin-top: 20px;">
+                        <strong>Cleaned mnemonic:</strong><br>
+                        ${cleaned}
+                    </div>
+                `;
+          return;
+        }
+
+        // موفق!
+        result.className = 'result success show';
+        result.innerHTML = `
+                <div class="big-icon">✅</div>
+                <div class="title">Mnemonic معتبر است!</div>
+                <p style="text-align: center; font-size: 18px; margin: 20px 0;">
+                    همه چیز صحیح است و می‌توانید در wallet استفاده کنید
+                </p>
+                <div class="word-grid">
+                    ${wordBoxes
+                      .map(
+                        (w) => `
+                        <div class="word-box valid">
+                            <span class="word-num">#${w.index}</span>
+                            ✓ ${w.word}
+                        </div>
+                    `
+                      )
+                      .join('')}
+                </div>
+                <div class="info-box" style="background: #d4edda; border-color: #28a745; margin-top: 20px;">
+                    <strong>🎉 حالا چکار کنم؟</strong><br><br>
+                    1. این mnemonic را در wallet paste کنید<br>
+                    2. PIN تعیین کنید<br>
+                    3. روی Restore Wallet کلیک کنید<br>
+                    4. Wallet شما بازگردانی می‌شود!
+                </div>
+            `;
+      };
+
+      console.log('✅ Trust Wallet Mnemonic Checker loaded');
+      console.log('📦 BIP39 wordlist size:', wordlist.length);
+    </script>
+  </body>
+</html>

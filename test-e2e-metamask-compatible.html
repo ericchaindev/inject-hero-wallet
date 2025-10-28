@@ -1,0 +1,1022 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Hero Wallet E2E Test - MetaMask Compatible</title>
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+          Oxygen, Ubuntu, sans-serif;
+        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+        min-height: 100vh;
+        padding: 20px;
+      }
+
+      .container {
+        max-width: 900px;
+        margin: 0 auto;
+      }
+
+      .header {
+        background: white;
+        border-radius: 12px;
+        padding: 30px;
+        margin-bottom: 20px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      }
+
+      .header h1 {
+        color: #1e3c72;
+        margin-bottom: 10px;
+      }
+
+      .header p {
+        color: #666;
+      }
+
+      .status-bar {
+        background: white;
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      }
+
+      .status-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+      }
+
+      .status-item {
+        padding: 15px;
+        background: #f8f9fa;
+        border-radius: 8px;
+        border-left: 4px solid #1e3c72;
+      }
+
+      .status-label {
+        font-size: 12px;
+        color: #666;
+        font-weight: 600;
+        text-transform: uppercase;
+        margin-bottom: 5px;
+      }
+
+      .status-value {
+        font-size: 14px;
+        color: #333;
+        font-family: 'Courier New', monospace;
+        word-break: break-all;
+      }
+
+      .status-value.connected {
+        color: #10b981;
+        font-weight: 600;
+      }
+
+      .status-value.disconnected {
+        color: #ef4444;
+        font-weight: 600;
+      }
+
+      .test-section {
+        background: white;
+        border-radius: 12px;
+        padding: 25px;
+        margin-bottom: 20px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      }
+
+      .test-section h2 {
+        color: #1e3c72;
+        margin-bottom: 20px;
+        font-size: 18px;
+        border-bottom: 2px solid #e5e7eb;
+        padding-bottom: 10px;
+      }
+
+      .test-group {
+        margin-bottom: 25px;
+      }
+
+      .test-group h3 {
+        color: #374151;
+        font-size: 16px;
+        margin-bottom: 15px;
+      }
+
+      .button-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-bottom: 15px;
+      }
+
+      .btn {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+        font-size: 14px;
+      }
+
+      .btn-primary {
+        background: #1e3c72;
+        color: white;
+      }
+
+      .btn-primary:hover {
+        background: #2a5298;
+        transform: translateY(-2px);
+      }
+
+      .btn-secondary {
+        background: #6b7280;
+        color: white;
+      }
+
+      .btn-secondary:hover {
+        background: #4b5563;
+      }
+
+      .btn-danger {
+        background: #ef4444;
+        color: white;
+      }
+
+      .btn-danger:hover {
+        background: #dc2626;
+      }
+
+      .btn-success {
+        background: #10b981;
+        color: white;
+      }
+
+      .btn-success:hover {
+        background: #059669;
+      }
+
+      .btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      .input-group {
+        margin-bottom: 15px;
+      }
+
+      .input-group label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: 600;
+        color: #374151;
+        font-size: 14px;
+      }
+
+      .input-group input,
+      .input-group textarea {
+        width: 100%;
+        padding: 10px;
+        border: 2px solid #e5e7eb;
+        border-radius: 8px;
+        font-size: 14px;
+        font-family: inherit;
+      }
+
+      .input-group input:focus,
+      .input-group textarea:focus {
+        outline: none;
+        border-color: #1e3c72;
+      }
+
+      .result-box {
+        background: #f9fafb;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        padding: 15px;
+        margin-top: 15px;
+        font-family: 'Courier New', monospace;
+        font-size: 12px;
+        max-height: 200px;
+        overflow-y: auto;
+      }
+
+      .result-box.success {
+        background: #d1fae5;
+        border-color: #10b981;
+        color: #065f46;
+      }
+
+      .result-box.error {
+        background: #fee2e2;
+        border-color: #ef4444;
+        color: #991b1b;
+      }
+
+      .log-console {
+        background: #1f2937;
+        color: #10b981;
+        padding: 20px;
+        border-radius: 8px;
+        font-family: 'Courier New', monospace;
+        font-size: 12px;
+        max-height: 400px;
+        overflow-y: auto;
+        margin-top: 15px;
+      }
+
+      .log-entry {
+        margin-bottom: 8px;
+        padding: 5px;
+        border-left: 2px solid #10b981;
+        padding-left: 10px;
+      }
+
+      .log-entry.error {
+        color: #ef4444;
+        border-left-color: #ef4444;
+      }
+
+      .log-entry.info {
+        color: #60a5fa;
+        border-left-color: #60a5fa;
+      }
+
+      .log-entry.warn {
+        color: #fbbf24;
+        border-left-color: #fbbf24;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>🦸 Hero Wallet E2E Test Suite</h1>
+        <p>
+          Complete end-to-end testing interface compatible with MetaMask Test
+          DApp
+        </p>
+      </div>
+
+      <div class="status-bar">
+        <div class="status-grid">
+          <div class="status-item">
+            <div class="status-label">Status</div>
+            <div class="status-value disconnected" id="connectionStatus">
+              Not Connected
+            </div>
+          </div>
+          <div class="status-item">
+            <div class="status-label">Account</div>
+            <div class="status-value" id="accountAddress">-</div>
+          </div>
+          <div class="status-item">
+            <div class="status-label">Chain ID</div>
+            <div class="status-value" id="chainId">-</div>
+          </div>
+          <div class="status-item">
+            <div class="status-label">Balance</div>
+            <div class="status-value" id="balance">-</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Connection Tests -->
+      <div class="test-section">
+        <h2>🔌 Connection & Account Management</h2>
+
+        <div class="test-group">
+          <h3>Basic Connection</h3>
+          <div class="button-row">
+            <button class="btn btn-primary" onclick="connectWallet()">
+              Connect Wallet (eth_requestAccounts)
+            </button>
+            <button class="btn btn-secondary" onclick="getAccounts()">
+              Get Accounts (eth_accounts)
+            </button>
+            <button class="btn btn-secondary" onclick="getChainId()">
+              Get Chain ID (eth_chainId)
+            </button>
+          </div>
+        </div>
+
+        <div class="test-group">
+          <h3>Permissions</h3>
+          <div class="button-row">
+            <button class="btn btn-primary" onclick="requestPermissions()">
+              Request Permissions
+            </button>
+            <button class="btn btn-secondary" onclick="getPermissions()">
+              Get Permissions
+            </button>
+            <button class="btn btn-danger" onclick="revokePermissions()">
+              Revoke Permissions
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Signing Tests -->
+      <div class="test-section">
+        <h2>✍️ Message Signing</h2>
+
+        <div class="test-group">
+          <h3>Personal Sign</h3>
+          <div class="input-group">
+            <label>Message:</label>
+            <input
+              type="text"
+              id="personalSignMessage"
+              value="Hello from Hero Wallet!"
+              placeholder="Enter message to sign"
+            />
+          </div>
+          <div class="button-row">
+            <button class="btn btn-primary" onclick="personalSign()">
+              Personal Sign
+            </button>
+            <button class="btn btn-secondary" onclick="ethSign()">
+              ETH Sign (Legacy)
+            </button>
+          </div>
+          <div id="personalSignResult"></div>
+        </div>
+
+        <div class="test-group">
+          <h3>Typed Data Signing</h3>
+          <div class="button-row">
+            <button class="btn btn-primary" onclick="signTypedDataV4()">
+              Sign Typed Data V4
+            </button>
+          </div>
+          <div id="typedDataResult"></div>
+        </div>
+      </div>
+
+      <!-- Transaction Tests -->
+      <div class="test-section">
+        <h2>💸 Transaction Management</h2>
+
+        <div class="test-group">
+          <h3>Send Transaction</h3>
+          <div class="input-group">
+            <label>To Address:</label>
+            <input
+              type="text"
+              id="txTo"
+              value="0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb"
+              placeholder="0x..."
+            />
+          </div>
+          <div class="input-group">
+            <label>Value (ETH):</label>
+            <input type="text" id="txValue" value="0.001" placeholder="0.001" />
+          </div>
+          <div class="button-row">
+            <button class="btn btn-primary" onclick="sendTransaction()">
+              Send Transaction
+            </button>
+            <button class="btn btn-secondary" onclick="estimateGas()">
+              Estimate Gas
+            </button>
+          </div>
+          <div id="txResult"></div>
+        </div>
+      </div>
+
+      <!-- Network Tests -->
+      <div class="test-section">
+        <h2>🔄 Network Management</h2>
+
+        <div class="test-group">
+          <h3>Switch Network</h3>
+          <div class="button-row">
+            <button class="btn btn-primary" onclick="switchToEthereum()">
+              Ethereum Mainnet (0x1)
+            </button>
+            <button class="btn btn-primary" onclick="switchToPolygon()">
+              Polygon (0x89)
+            </button>
+            <button class="btn btn-primary" onclick="switchToBSC()">
+              BSC (0x38)
+            </button>
+            <button class="btn btn-success" onclick="switchToSepolia()">
+              Sepolia Testnet (0xaa36a7)
+            </button>
+          </div>
+          <div id="networkResult"></div>
+        </div>
+
+        <div class="test-group">
+          <h3>Add Custom Network</h3>
+          <div class="button-row">
+            <button class="btn btn-primary" onclick="addAvalanche()">
+              Add Avalanche
+            </button>
+            <button class="btn btn-primary" onclick="addArbitrum()">
+              Add Arbitrum
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- RPC Tests -->
+      <div class="test-section">
+        <h2>📡 RPC Methods</h2>
+
+        <div class="test-group">
+          <h3>Read Methods</h3>
+          <div class="input-group">
+            <label>Address for Balance:</label>
+            <input
+              type="text"
+              id="balanceAddress"
+              value=""
+              placeholder="0x... (leave empty for current account)"
+            />
+          </div>
+          <div class="button-row">
+            <button class="btn btn-secondary" onclick="getBalance()">
+              Get Balance
+            </button>
+            <button class="btn btn-secondary" onclick="getBlockNumber()">
+              Get Block Number
+            </button>
+            <button class="btn btn-secondary" onclick="getGasPrice()">
+              Get Gas Price
+            </button>
+          </div>
+          <div id="rpcResult"></div>
+        </div>
+      </div>
+
+      <!-- Event Listeners -->
+      <div class="test-section">
+        <h2>📻 Event Listeners</h2>
+
+        <div class="test-group">
+          <h3>Provider Events</h3>
+          <div class="button-row">
+            <button class="btn btn-primary" onclick="setupEventListeners()">
+              Setup Event Listeners
+            </button>
+            <button class="btn btn-danger" onclick="removeEventListeners()">
+              Remove Event Listeners
+            </button>
+          </div>
+          <div id="eventsResult"></div>
+        </div>
+      </div>
+
+      <!-- Activity Log -->
+      <div class="test-section">
+        <h2>📋 Activity Log</h2>
+        <button class="btn btn-secondary" onclick="clearLog()">
+          Clear Log
+        </button>
+        <div class="log-console" id="activityLog">
+          <div class="log-entry info">Ready to test Hero Wallet...</div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      let currentAccount = null;
+      let currentChainId = null;
+      let eventListenersSetup = false;
+
+      // Logging
+      function log(message, type = 'info') {
+        const logDiv = document.getElementById('activityLog');
+        const entry = document.createElement('div');
+        entry.className = `log-entry ${type}`;
+        const timestamp = new Date().toLocaleTimeString();
+        entry.textContent = `[${timestamp}] ${message}`;
+        logDiv.appendChild(entry);
+        logDiv.scrollTop = logDiv.scrollHeight;
+        console.log(`[${type.toUpperCase()}]`, message);
+      }
+
+      function clearLog() {
+        document.getElementById('activityLog').innerHTML =
+          '<div class="log-entry info">Log cleared.</div>';
+      }
+
+      function showResult(elementId, message, isError = false) {
+        const el = document.getElementById(elementId);
+        if (el) {
+          el.className = `result-box ${isError ? 'error' : 'success'}`;
+          el.textContent = message;
+        }
+      }
+
+      function updateUI() {
+        document.getElementById('connectionStatus').textContent = currentAccount
+          ? 'Connected'
+          : 'Not Connected';
+        document.getElementById('connectionStatus').className = `status-value ${
+          currentAccount ? 'connected' : 'disconnected'
+        }`;
+        document.getElementById('accountAddress').textContent =
+          currentAccount || '-';
+        document.getElementById('chainId').textContent = currentChainId || '-';
+      }
+
+      // Check provider
+      async function checkProvider() {
+        if (typeof window.ethereum === 'undefined') {
+          log(
+            '❌ No Ethereum provider detected. Please install Hero Wallet.',
+            'error'
+          );
+          return false;
+        }
+        log('✅ Ethereum provider detected!', 'info');
+        log(
+          `Provider: ${
+            window.ethereum.isHeroWallet
+              ? 'Hero Wallet'
+              : window.ethereum.isMetaMask
+              ? 'MetaMask'
+              : 'Unknown'
+          }`,
+          'info'
+        );
+        return true;
+      }
+
+      // Connection
+      async function connectWallet() {
+        try {
+          log('📡 Requesting wallet connection (eth_requestAccounts)...');
+          const accounts = await window.ethereum.request({
+            method: 'eth_requestAccounts',
+          });
+          currentAccount = accounts[0];
+          log(`✅ Connected: ${currentAccount}`, 'info');
+          await getChainId();
+          await updateBalance();
+          updateUI();
+        } catch (error) {
+          log(`❌ Connection failed: ${error.message}`, 'error');
+          console.error(error);
+        }
+      }
+
+      async function getAccounts() {
+        try {
+          log('📡 Getting accounts (eth_accounts)...');
+          const accounts = await window.ethereum.request({
+            method: 'eth_accounts',
+          });
+          log(`✅ Accounts: ${JSON.stringify(accounts)}`, 'info');
+          if (accounts.length > 0) {
+            currentAccount = accounts[0];
+            updateUI();
+          }
+        } catch (error) {
+          log(`❌ Failed: ${error.message}`, 'error');
+        }
+      }
+
+      async function getChainId() {
+        try {
+          log('📡 Getting chain ID (eth_chainId)...');
+          currentChainId = await window.ethereum.request({
+            method: 'eth_chainId',
+          });
+          log(`✅ Chain ID: ${currentChainId}`, 'info');
+          updateUI();
+        } catch (error) {
+          log(`❌ Failed: ${error.message}`, 'error');
+        }
+      }
+
+      async function updateBalance() {
+        if (!currentAccount) return;
+        try {
+          const balance = await window.ethereum.request({
+            method: 'eth_getBalance',
+            params: [currentAccount, 'latest'],
+          });
+          const ethBalance = parseInt(balance, 16) / 1e18;
+          document.getElementById(
+            'balance'
+          ).textContent = `${ethBalance.toFixed(6)} ETH`;
+          log(`💰 Balance: ${ethBalance.toFixed(6)} ETH`);
+        } catch (error) {
+          log(`⚠️  Balance fetch failed: ${error.message}`, 'warn');
+        }
+      }
+
+      // Permissions
+      async function requestPermissions() {
+        try {
+          log('📡 Requesting permissions (wallet_requestPermissions)...');
+          const permissions = await window.ethereum.request({
+            method: 'wallet_requestPermissions',
+            params: [{ eth_accounts: {} }],
+          });
+          log(`✅ Permissions granted: ${JSON.stringify(permissions)}`, 'info');
+        } catch (error) {
+          log(`❌ Failed: ${error.message}`, 'error');
+        }
+      }
+
+      async function getPermissions() {
+        try {
+          log('📡 Getting permissions (wallet_getPermissions)...');
+          const permissions = await window.ethereum.request({
+            method: 'wallet_getPermissions',
+          });
+          log(`✅ Permissions: ${JSON.stringify(permissions)}`, 'info');
+        } catch (error) {
+          log(`❌ Failed: ${error.message}`, 'error');
+        }
+      }
+
+      async function revokePermissions() {
+        try {
+          log('📡 Revoking permissions (wallet_revokePermissions)...');
+          await window.ethereum.request({
+            method: 'wallet_revokePermissions',
+            params: [{ eth_accounts: {} }],
+          });
+          log(`✅ Permissions revoked`, 'info');
+          currentAccount = null;
+          updateUI();
+        } catch (error) {
+          log(`❌ Failed: ${error.message}`, 'error');
+        }
+      }
+
+      // Signing
+      async function personalSign() {
+        const message = document.getElementById('personalSignMessage').value;
+        if (!currentAccount) {
+          log('❌ Please connect wallet first', 'error');
+          return;
+        }
+
+        try {
+          log(`✍️  Signing message: "${message}"`);
+          const signature = await window.ethereum.request({
+            method: 'personal_sign',
+            params: [message, currentAccount],
+          });
+          log(`✅ Signature: ${signature}`, 'info');
+          showResult('personalSignResult', `Signature: ${signature}`);
+        } catch (error) {
+          log(`❌ Signing failed: ${error.message}`, 'error');
+          showResult('personalSignResult', `Error: ${error.message}`, true);
+        }
+      }
+
+      async function ethSign() {
+        const message = document.getElementById('personalSignMessage').value;
+        if (!currentAccount) {
+          log('❌ Please connect wallet first', 'error');
+          return;
+        }
+
+        try {
+          log(`✍️  ETH Sign: "${message}"`);
+          const signature = await window.ethereum.request({
+            method: 'eth_sign',
+            params: [currentAccount, message],
+          });
+          log(`✅ Signature: ${signature}`, 'info');
+          showResult('personalSignResult', `Signature: ${signature}`);
+        } catch (error) {
+          log(`❌ Signing failed: ${error.message}`, 'error');
+          showResult('personalSignResult', `Error: ${error.message}`, true);
+        }
+      }
+
+      async function signTypedDataV4() {
+        if (!currentAccount) {
+          log('❌ Please connect wallet first', 'error');
+          return;
+        }
+
+        const msgParams = {
+          domain: {
+            chainId: parseInt(currentChainId, 16),
+            name: 'Hero Wallet Test',
+            version: '1',
+          },
+          message: {
+            content: 'Hello from Hero Wallet!',
+            from: currentAccount,
+          },
+          primaryType: 'Message',
+          types: {
+            EIP712Domain: [
+              { name: 'name', type: 'string' },
+              { name: 'version', type: 'string' },
+              { name: 'chainId', type: 'uint256' },
+            ],
+            Message: [
+              { name: 'content', type: 'string' },
+              { name: 'from', type: 'address' },
+            ],
+          },
+        };
+
+        try {
+          log('✍️  Signing typed data V4...');
+          const signature = await window.ethereum.request({
+            method: 'eth_signTypedData_v4',
+            params: [currentAccount, JSON.stringify(msgParams)],
+          });
+          log(`✅ Signature: ${signature}`, 'info');
+          showResult('typedDataResult', `Signature: ${signature}`);
+        } catch (error) {
+          log(`❌ Signing failed: ${error.message}`, 'error');
+          showResult('typedDataResult', `Error: ${error.message}`, true);
+        }
+      }
+
+      // Transactions
+      async function sendTransaction() {
+        const to = document.getElementById('txTo').value;
+        const value = document.getElementById('txValue').value;
+
+        if (!currentAccount) {
+          log('❌ Please connect wallet first', 'error');
+          return;
+        }
+
+        try {
+          log(`💸 Sending ${value} ETH to ${to}...`);
+          const valueHex = '0x' + (parseFloat(value) * 1e18).toString(16);
+
+          const txHash = await window.ethereum.request({
+            method: 'eth_sendTransaction',
+            params: [
+              {
+                from: currentAccount,
+                to: to,
+                value: valueHex,
+                gas: '0x5208', // 21000
+              },
+            ],
+          });
+
+          log(`✅ Transaction sent! Hash: ${txHash}`, 'info');
+          showResult('txResult', `TX Hash: ${txHash}`);
+
+          setTimeout(updateBalance, 2000);
+        } catch (error) {
+          log(`❌ Transaction failed: ${error.message}`, 'error');
+          showResult('txResult', `Error: ${error.message}`, true);
+        }
+      }
+
+      async function estimateGas() {
+        const to = document.getElementById('txTo').value;
+        const value = document.getElementById('txValue').value;
+
+        if (!currentAccount) {
+          log('❌ Please connect wallet first', 'error');
+          return;
+        }
+
+        try {
+          log('📊 Estimating gas...');
+          const valueHex = '0x' + (parseFloat(value) * 1e18).toString(16);
+
+          const gasEstimate = await window.ethereum.request({
+            method: 'eth_estimateGas',
+            params: [
+              {
+                from: currentAccount,
+                to: to,
+                value: valueHex,
+              },
+            ],
+          });
+
+          const gasDecimal = parseInt(gasEstimate, 16);
+          log(`✅ Estimated gas: ${gasDecimal} (${gasEstimate})`, 'info');
+          showResult('txResult', `Gas estimate: ${gasDecimal}`);
+        } catch (error) {
+          log(`❌ Gas estimation failed: ${error.message}`, 'error');
+          showResult('txResult', `Error: ${error.message}`, true);
+        }
+      }
+
+      // Network Management
+      async function switchToEthereum() {
+        await switchNetwork('0x1', 'Ethereum Mainnet');
+      }
+
+      async function switchToPolygon() {
+        await switchNetwork('0x89', 'Polygon');
+      }
+
+      async function switchToBSC() {
+        await switchNetwork('0x38', 'BSC');
+      }
+
+      async function switchToSepolia() {
+        await switchNetwork('0xaa36a7', 'Sepolia Testnet');
+      }
+
+      async function switchNetwork(chainId, name) {
+        try {
+          log(`🔄 Switching to ${name} (${chainId})...`);
+          await window.ethereum.request({
+            method: 'wallet_switchEthereumChain',
+            params: [{ chainId }],
+          });
+          currentChainId = chainId;
+          log(`✅ Switched to ${name}`, 'info');
+          showResult('networkResult', `Successfully switched to ${name}`);
+          updateUI();
+          await updateBalance();
+        } catch (error) {
+          log(`❌ Network switch failed: ${error.message}`, 'error');
+          showResult('networkResult', `Error: ${error.message}`, true);
+        }
+      }
+
+      async function addAvalanche() {
+        try {
+          log('🔄 Adding Avalanche network...');
+          await window.ethereum.request({
+            method: 'wallet_addEthereumChain',
+            params: [
+              {
+                chainId: '0xa86a',
+                chainName: 'Avalanche C-Chain',
+                nativeCurrency: { name: 'AVAX', symbol: 'AVAX', decimals: 18 },
+                rpcUrls: ['https://api.avax.network/ext/bc/C/rpc'],
+                blockExplorerUrls: ['https://snowtrace.io/'],
+              },
+            ],
+          });
+          log('✅ Avalanche added', 'info');
+        } catch (error) {
+          log(`❌ Failed: ${error.message}`, 'error');
+        }
+      }
+
+      async function addArbitrum() {
+        try {
+          log('🔄 Adding Arbitrum network...');
+          await window.ethereum.request({
+            method: 'wallet_addEthereumChain',
+            params: [
+              {
+                chainId: '0xa4b1',
+                chainName: 'Arbitrum One',
+                nativeCurrency: { name: 'ETH', symbol: 'ETH', decimals: 18 },
+                rpcUrls: ['https://arb1.arbitrum.io/rpc'],
+                blockExplorerUrls: ['https://arbiscan.io/'],
+              },
+            ],
+          });
+          log('✅ Arbitrum added', 'info');
+        } catch (error) {
+          log(`❌ Failed: ${error.message}`, 'error');
+        }
+      }
+
+      // RPC Methods
+      async function getBalance() {
+        const address =
+          document.getElementById('balanceAddress').value || currentAccount;
+        if (!address) {
+          log('❌ Please provide an address or connect wallet', 'error');
+          return;
+        }
+
+        try {
+          log(`📊 Getting balance for ${address}...`);
+          const balance = await window.ethereum.request({
+            method: 'eth_getBalance',
+            params: [address, 'latest'],
+          });
+          const ethBalance = parseInt(balance, 16) / 1e18;
+          log(`✅ Balance: ${ethBalance} ETH`, 'info');
+          showResult('rpcResult', `Balance: ${ethBalance} ETH`);
+        } catch (error) {
+          log(`❌ Failed: ${error.message}`, 'error');
+          showResult('rpcResult', `Error: ${error.message}`, true);
+        }
+      }
+
+      async function getBlockNumber() {
+        try {
+          log('📊 Getting block number...');
+          const blockNumber = await window.ethereum.request({
+            method: 'eth_blockNumber',
+          });
+          const blockDecimal = parseInt(blockNumber, 16);
+          log(`✅ Block number: ${blockDecimal}`, 'info');
+          showResult('rpcResult', `Block: ${blockDecimal}`);
+        } catch (error) {
+          log(`❌ Failed: ${error.message}`, 'error');
+          showResult('rpcResult', `Error: ${error.message}`, true);
+        }
+      }
+
+      async function getGasPrice() {
+        try {
+          log('📊 Getting gas price...');
+          const gasPrice = await window.ethereum.request({
+            method: 'eth_gasPrice',
+          });
+          const gasPriceGwei = parseInt(gasPrice, 16) / 1e9;
+          log(`✅ Gas price: ${gasPriceGwei} Gwei`, 'info');
+          showResult('rpcResult', `Gas price: ${gasPriceGwei} Gwei`);
+        } catch (error) {
+          log(`❌ Failed: ${error.message}`, 'error');
+          showResult('rpcResult', `Error: ${error.message}`, true);
+        }
+      }
+
+      // Event Listeners
+      function setupEventListeners() {
+        if (eventListenersSetup) {
+          log('⚠️  Event listeners already setup', 'warn');
+          return;
+        }
+
+        window.ethereum.on('accountsChanged', (accounts) => {
+          log(
+            `📢 Event: accountsChanged - ${JSON.stringify(accounts)}`,
+            'info'
+          );
+          currentAccount = accounts[0] || null;
+          updateUI();
+        });
+
+        window.ethereum.on('chainChanged', (chainId) => {
+          log(`📢 Event: chainChanged - ${chainId}`, 'info');
+          currentChainId = chainId;
+          updateUI();
+          window.location.reload();
+        });
+
+        window.ethereum.on('connect', (connectInfo) => {
+          log(`📢 Event: connect - ${JSON.stringify(connectInfo)}`, 'info');
+        });
+
+        window.ethereum.on('disconnect', (error) => {
+          log(`📢 Event: disconnect - ${JSON.stringify(error)}`, 'info');
+        });
+
+        eventListenersSetup = true;
+        log('✅ Event listeners setup complete', 'info');
+        showResult('eventsResult', 'Event listeners are now active');
+      }
+
+      function removeEventListeners() {
+        // Note: removeListener implementation depends on provider
+        log('⚠️  Event listeners removed (page reload recommended)', 'warn');
+        eventListenersSetup = false;
+        showResult('eventsResult', 'Event listeners removed');
+      }
+
+      // Initialize
+      window.addEventListener('load', async () => {
+        const hasProvider = await checkProvider();
+        if (hasProvider) {
+          // Try to get existing connection
+          try {
+            const accounts = await window.ethereum.request({
+              method: 'eth_accounts',
+            });
+            if (accounts.length > 0) {
+              currentAccount = accounts[0];
+              currentChainId = await window.ethereum.request({
+                method: 'eth_chainId',
+              });
+              await updateBalance();
+              updateUI();
+              log('✅ Already connected', 'info');
+            }
+          } catch (error) {
+            log(`⚠️  Could not check connection: ${error.message}`, 'warn');
+          }
+
+          // Setup event listeners automatically
+          setupEventListeners();
+        }
+      });
+    </script>
+  </body>
+</html>

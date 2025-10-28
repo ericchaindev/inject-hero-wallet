@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>🔬 تست Mnemonic شما</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        padding: 20px;
+      }
+      .container {
+        max-width: 900px;
+        margin: 0 auto;
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        overflow: hidden;
+      }
+      .header {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        color: white;
+        padding: 30px;
+        text-align: center;
+      }
+      .content {
+        padding: 30px;
+      }
+      .result {
+        margin: 20px 0;
+        padding: 25px;
+        border-radius: 12px;
+      }
+      .result.error {
+        background: #fee;
+        border: 3px solid #fcc;
+      }
+      .result.success {
+        background: #efe;
+        border: 3px solid #cfc;
+      }
+      .big-icon {
+        font-size: 60px;
+        text-align: center;
+        margin-bottom: 15px;
+      }
+      .title {
+        font-size: 28px;
+        font-weight: bold;
+        text-align: center;
+        margin-bottom: 20px;
+      }
+      .word-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 10px;
+        margin: 20px 0;
+      }
+      .word-box {
+        padding: 15px;
+        border-radius: 8px;
+        text-align: center;
+        font-family: 'Consolas', monospace;
+        font-size: 14px;
+        font-weight: bold;
+        border: 3px solid;
+      }
+      .word-box.valid {
+        background: #d4edda;
+        border-color: #28a745;
+        color: #155724;
+      }
+      .word-box.invalid {
+        background: #f8d7da;
+        border-color: #dc3545;
+        color: #721c24;
+      }
+      .word-num {
+        display: block;
+        font-size: 11px;
+        opacity: 0.6;
+        margin-bottom: 5px;
+      }
+      .info-box {
+        background: #e7f3ff;
+        border: 3px solid #4dabf7;
+        padding: 20px;
+        border-radius: 8px;
+        margin: 20px 0;
+        font-size: 15px;
+        line-height: 1.8;
+      }
+      .error-detail {
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        margin: 15px 0;
+        direction: ltr;
+        text-align: left;
+        font-family: 'Consolas', monospace;
+        font-size: 14px;
+        line-height: 1.8;
+      }
+      code {
+        background: #f4f4f4;
+        padding: 3px 8px;
+        border-radius: 4px;
+        font-family: 'Consolas', monospace;
+      }
+      .btn {
+        width: 100%;
+        padding: 18px;
+        margin: 15px 0;
+        border: none;
+        border-radius: 8px;
+        font-size: 18px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: all 0.3s;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+      }
+      .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>🔬 تست دقیق Mnemonic شما</h1>
+      </div>
+
+      <div class="content">
+        <div id="autoTest"></div>
+      </div>
+    </div>
+
+    <script type="module">
+      import * as bip39 from 'https://cdn.jsdelivr.net/npm/bip39@3.1.0/+esm';
+
+      const YOUR_MNEMONIC =
+        'great orchard youth occur banana swap soap floor video debris snap shoe';
+
+      async function testYourMnemonic() {
+        const result = document.getElementById('autoTest');
+
+        console.log('🔬 Testing your exact mnemonic:', YOUR_MNEMONIC);
+
+        // پاکسازی
+        const cleaned = YOUR_MNEMONIC.trim().toLowerCase().replace(/\s+/g, ' ');
+        const words = cleaned.split(' ');
+        const wordlist = bip39.wordlists.english;
+
+        console.log('📝 Cleaned:', cleaned);
+        console.log('📊 Word count:', words.length);
+        console.log('📋 Words:', words);
+
+        // بررسی هر کلمه
+        const invalidWords = [];
+        const wordBoxes = words.map((word, index) => {
+          const isValid = wordlist.includes(word);
+          console.log(
+            `Word ${index + 1}: "${word}" -> ${
+              isValid ? '✓ Valid' : '✗ Invalid'
+            }`
+          );
+
+          if (!isValid) {
+            // پیدا کردن نزدیک‌ترین کلمه
+            let closest = '';
+            let minDist = Infinity;
+            wordlist.forEach((validWord) => {
+              if (validWord.startsWith(word.charAt(0))) {
+                const dist = Math.abs(validWord.length - word.length);
+                if (dist < minDist) {
+                  minDist = dist;
+                  closest = validWord;
+                }
+              }
+            });
+
+            invalidWords.push({
+              index: index + 1,
+              wrong: word,
+              suggestion: closest,
+            });
+          }
+
+          return {
+            index: index + 1,
+            word: word,
+            valid: isValid,
+          };
+        });
+
+        // بررسی checksum
+        const isValidChecksum = bip39.validateMnemonic(cleaned);
+        console.log('🔐 Checksum valid:', isValidChecksum);
+
+        // نمایش نتیجه
+        if (invalidWords.length > 0) {
+          // کلمه نامعتبر وجود دارد
+          result.innerHTML = `
+                    <div class="result error">
+                        <div class="big-icon">❌</div>
+                        <div class="title">کلمات نامعتبر پیدا شد!</div>
+                        <p style="text-align: center; font-size: 18px; margin: 15px 0;">
+                            <strong>${
+                              invalidWords.length
+                            }</strong> کلمه در لیست BIP39 نیست
+                        </p>
+                        ${invalidWords
+                          .map(
+                            (inv) => `
+                            <div class="info-box" style="background: #fff3cd; border-color: #ffc107;">
+                                <strong>کلمه ${inv.index}:</strong><br>
+                                ❌ اشتباه: <code style="background: #f8d7da; color: #721c24; padding: 5px 10px; font-size: 16px;">${inv.wrong}</code><br>
+                                <br>
+                                ✅ نزدیک‌ترین کلمه معتبر: <code style="background: #d4edda; color: #155724; padding: 5px 10px; font-size: 16px;">${inv.suggestion}</code>
+                            </div>
+                        `
+                          )
+                          .join('')}
+                    </div>
+                    
+                    <div class="word-grid">
+                        ${wordBoxes
+                          .map(
+                            (w) => `
+                            <div class="word-box ${
+                              w.valid ? 'valid' : 'invalid'
+                            }">
+                                <span class="word-num">#${w.index}</span>
+                                ${w.valid ? '✓' : '✗'} ${w.word}
+                            </div>
+                        `
+                          )
+                          .join('')}
+                    </div>
+                    
+                    <div class="info-box">
+                        <strong>🔧 چطور درست کنم؟</strong><br><br>
+                        1. کلمه‌های نامعتبر را با پیشنهاد جایگزین کنید<br>
+                        2. یا از Trust Wallet دوباره mnemonic را کپی کنید<br>
+                        3. مطمئن شوید هیچ تایپی انجام نداده‌اید (فقط Copy/Paste)
+                    </div>
+                `;
+        } else if (!isValidChecksum) {
+          // همه کلمات درست ولی checksum اشتباه
+          result.innerHTML = `
+                    <div class="result error">
+                        <div class="big-icon">⚠️</div>
+                        <div class="title">Checksum نامعتبر!</div>
+                        <p style="text-align: center; font-size: 18px; margin: 20px 0; line-height: 1.8;">
+                            همه کلمات صحیح هستند<br>
+                            ولی <strong>ترتیب آنها اشتباه است</strong>
+                        </p>
+                        
+                        <div class="word-grid">
+                            ${wordBoxes
+                              .map(
+                                (w) => `
+                                <div class="word-box valid">
+                                    <span class="word-num">#${w.index}</span>
+                                    ✓ ${w.word}
+                                </div>
+                            `
+                              )
+                              .join('')}
+                        </div>
+                        
+                        <div class="info-box">
+                            <strong>🤔 این یعنی چی؟</strong><br><br>
+                            در BIP39، آخرین کلمه شامل یک checksum است که از کلمات قبلی محاسبه می‌شود.<br>
+                            اگر ترتیب کلمات اشتباه باشد، checksum درست نمی‌شود.<br><br>
+                            <strong>💡 راه حل:</strong><br>
+                            • از Trust Wallet دوباره mnemonic را کپی کنید<br>
+                            • مطمئن شوید ترتیب دقیقاً همان است که Trust Wallet نشان می‌دهد<br>
+                            • هیچ کلمه‌ای را جابجا نکنید
+                        </div>
+                        
+                        <div class="error-detail">
+                            <strong>🔍 اطلاعات تکنیکال:</strong><br>
+                            <br>
+                            Mnemonic: <code>${cleaned}</code><br>
+                            Word count: ${words.length} ✓<br>
+                            All words valid: Yes ✓<br>
+                            Checksum: <span style="color: red; font-weight: bold;">Failed ✗</span><br>
+                            <br>
+                            <strong>Possible causes:</strong><br>
+                            • Wrong word order<br>
+                            • Mnemonic not copied correctly from Trust Wallet<br>
+                            • Different mnemonic than expected
+                        </div>
+                    </div>
+                `;
+        } else {
+          // موفق!
+          result.innerHTML = `
+                    <div class="result success">
+                        <div class="big-icon">✅</div>
+                        <div class="title">Mnemonic معتبر است!</div>
+                        <p style="text-align: center; font-size: 18px; margin: 20px 0;">
+                            همه چیز صحیح است!
+                        </p>
+                        
+                        <div class="word-grid">
+                            ${wordBoxes
+                              .map(
+                                (w) => `
+                                <div class="word-box valid">
+                                    <span class="word-num">#${w.index}</span>
+                                    ✓ ${w.word}
+                                </div>
+                            `
+                              )
+                              .join('')}
+                        </div>
+                        
+                        <div class="info-box" style="background: #d4edda; border-color: #28a745;">
+                            <strong>🎉 حالا چکار کنم؟</strong><br><br>
+                            این mnemonic کاملاً معتبر است و می‌توانید در wallet استفاده کنید!
+                        </div>
+                        
+                        <div class="error-detail">
+                            <strong>✅ Validation results:</strong><br>
+                            <br>
+                            Word count: ${words.length} ✓<br>
+                            All words valid: Yes ✓<br>
+                            Checksum: <span style="color: green; font-weight: bold;">Valid ✓</span><br>
+                            <br>
+                            <strong>BIP39 validation: PASSED</strong>
+                        </div>
+                    </div>
+                `;
+        }
+      }
+
+      // تست خودکار
+      testYourMnemonic();
+    </script>
+  </body>
+</html>

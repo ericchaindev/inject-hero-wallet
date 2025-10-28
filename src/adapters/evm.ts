@@ -185,7 +185,19 @@ export class EvmAdapter {
           return await wallet.signTypedData(domain, types, message);
         } else {
           // Personal message signing (EIP-191)
-          return await wallet.signMessage(request.message);
+          // If message is hex-encoded, convert to bytes for proper signing
+          let messageToSign: string | Uint8Array = request.message;
+
+          if (
+            typeof request.message === 'string' &&
+            request.message.startsWith('0x')
+          ) {
+            // Hex-encoded message - convert to bytes
+            // ethers.js will properly handle the bytes and add EIP-191 prefix
+            messageToSign = ethers.getBytes(request.message);
+          }
+
+          return await wallet.signMessage(messageToSign);
         }
       } catch (error) {
         throw new EvmAdapterError(

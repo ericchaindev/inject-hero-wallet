@@ -456,6 +456,22 @@ export class AccountManager {
 // Public API with singleton session manager
 const sessionManager = SessionManager.getInstance();
 
+const REMEMBERED_PIN_STORAGE_KEY = 'hero_remembered_pin_v1';
+
+type RememberedPinRecord = {
+  readonly iv: string;
+  readonly salt: string;
+  readonly ct: string;
+  readonly createdAt: number;
+};
+
+function getRememberPinSecret(): string {
+  if (typeof chrome !== 'undefined' && chrome.runtime?.id) {
+    return `remember-pin::${chrome.runtime.id}`;
+  }
+  return 'remember-pin::fallback';
+}
+
 export function isUnlocked(): boolean {
   return sessionManager.isUnlocked();
 }
@@ -499,6 +515,82 @@ export async function saveState(state: WalletState): Promise<void> {
 export async function clearAllData(): Promise<void> {
   sessionManager.lockNow();
   return WalletStorage.clearAll();
+}
+
+export async function setRememberedPin(pin: string | null): Promise<void> {
+  if (!pin) {
+    await clearRememberedPin();
+    return;
+  }
+
+  try {
+    const secret = getRememberPinSecret();
+    const encrypted = await CryptoUtils.encryptJSON({ pin }, secret);
+    const record: RememberedPinRecord = {
+      iv: encrypted.iv,
+      salt: encrypted.salt,
+      ct: encrypted.ciphertext,
+      createdAt: Date.now(),
+    };
+
+    await browserX.storage.local.set({
+      [REMEMBERED_PIN_STORAGE_KEY]: record,
+    });
+  } catch (error) {
+    console.error('Failed to store remembered PIN:', error);
+    throw new KeystoreError(
+      'Failed to remember PIN',
+      'REMEMBER_PIN_SAVE_FAILED'
+    );
+  }
+}
+
+export async function getRememberedPin(): Promise<string | null> {
+  try {
+    const result = await browserX.storage.local.get([
+      REMEMBERED_PIN_STORAGE_KEY,
+    ]);
+    const stored = result[REMEMBERED_PIN_STORAGE_KEY] as
+      | RememberedPinRecord
+      | undefined;
+
+    if (!stored || !stored.iv || !stored.salt || !stored.ct) {
+      if (stored) {
+        await clearRememberedPin();
+      }
+      return null;
+    }
+
+    const secret = getRememberPinSecret();
+    const payload = await CryptoUtils.decryptJSON<{ pin: string }>(
+      secret,
+      stored.iv,
+      stored.salt,
+      stored.ct
+    );
+
+    if (!payload?.pin || typeof payload.pin !== 'string') {
+      await clearRememberedPin();
+      return null;
+    }
+
+    return payload.pin;
+  } catch (error) {
+    console.warn(
+      'Failed to load remembered PIN, clearing stored value:',
+      error
+    );
+    await clearRememberedPin();
+    return null;
+  }
+}
+
+export async function clearRememberedPin(): Promise<void> {
+  try {
+    await browserX.storage.local.remove([REMEMBERED_PIN_STORAGE_KEY]);
+  } catch (error) {
+    console.warn('Failed to clear remembered PIN:', error);
+  }
 }
 
 // Account API

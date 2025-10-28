@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>🔐 Permissions Test</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        padding: 20px;
+      }
+      .container {
+        max-width: 800px;
+        margin: 0 auto;
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        overflow: hidden;
+      }
+      .header {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        color: white;
+        padding: 30px;
+        text-align: center;
+      }
+      .content {
+        padding: 30px;
+      }
+      .section {
+        margin-bottom: 30px;
+        padding: 20px;
+        background: #f8f9fa;
+        border-radius: 12px;
+      }
+      .section h3 {
+        color: #333;
+        margin-bottom: 15px;
+        font-size: 18px;
+      }
+      .btn-group {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+      .btn {
+        padding: 12px 24px;
+        border: none;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: all 0.3s;
+        flex: 1;
+        min-width: 150px;
+      }
+      .btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+      }
+      .btn-success {
+        background: linear-gradient(135deg, #56ab2f 0%, #a8e063 100%);
+        color: white;
+      }
+      .btn-danger {
+        background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%);
+        color: white;
+      }
+      .btn-info {
+        background: linear-gradient(135deg, #2193b0 0%, #6dd5ed 100%);
+        color: white;
+      }
+      .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+      }
+      .btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none;
+      }
+      .status {
+        padding: 15px;
+        border-radius: 8px;
+        margin-top: 15px;
+        font-family: 'Consolas', monospace;
+        font-size: 13px;
+      }
+      .status.info {
+        background: #d1ecf1;
+        color: #0c5460;
+      }
+      .status.success {
+        background: #d4edda;
+        color: #155724;
+      }
+      .status.error {
+        background: #f8d7da;
+        color: #721c24;
+      }
+      .status.warning {
+        background: #fff3cd;
+        color: #856404;
+      }
+      .log-container {
+        max-height: 400px;
+        overflow-y: auto;
+        background: #1e1e1e;
+        color: #d4d4d4;
+        padding: 15px;
+        border-radius: 8px;
+        font-family: 'Consolas', monospace;
+        font-size: 13px;
+        line-height: 1.6;
+      }
+      .log-entry {
+        margin-bottom: 8px;
+        padding: 5px;
+        border-left: 3px solid;
+      }
+      .log-entry.info {
+        border-color: #3b82f6;
+      }
+      .log-entry.success {
+        border-color: #10b981;
+      }
+      .log-entry.error {
+        border-color: #ef4444;
+      }
+      .log-entry.warning {
+        border-color: #f59e0b;
+      }
+      .badge {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: bold;
+        margin-left: 10px;
+      }
+      .badge.connected {
+        background: #10b981;
+        color: white;
+      }
+      .badge.disconnected {
+        background: #ef4444;
+        color: white;
+      }
+      pre {
+        background: #2d2d2d;
+        color: #f8f8f2;
+        padding: 15px;
+        border-radius: 8px;
+        overflow-x: auto;
+        margin-top: 10px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>🔐 Permissions Test</h1>
+        <p>
+          Test wallet_requestPermissions, wallet_getPermissions,
+          wallet_revokePermissions
+        </p>
+      </div>
+
+      <div class="content">
+        <!-- Connection Status -->
+        <div class="section">
+          <h3>📊 Status</h3>
+          <div id="status" class="status info">
+            <strong>Wallet:</strong> <span id="walletStatus">Not detected</span
+            ><br />
+            <strong>Connected:</strong> <span id="connectedStatus">No</span
+            ><br />
+            <strong>Account:</strong> <span id="accountAddress">-</span><br />
+            <strong>Network:</strong> <span id="networkId">-</span>
+          </div>
+        </div>
+
+        <!-- Basic Connection -->
+        <div class="section">
+          <h3>🔌 1. Connect First</h3>
+          <div class="btn-group">
+            <button class="btn btn-primary" onclick="connectWallet()">
+              Connect Wallet
+            </button>
+            <button class="btn btn-danger" onclick="disconnect()">
+              Disconnect
+            </button>
+          </div>
+        </div>
+
+        <!-- Permissions Actions -->
+        <div class="section">
+          <h3>🔐 2. Permissions Actions</h3>
+          <div class="btn-group">
+            <button class="btn btn-success" onclick="requestPermissions()">
+              Request Permissions
+            </button>
+            <button class="btn btn-info" onclick="getPermissions()">
+              Get Permissions
+            </button>
+            <button class="btn btn-danger" onclick="revokePermissions()">
+              Revoke Permissions
+            </button>
+          </div>
+        </div>
+
+        <!-- Test All -->
+        <div class="section">
+          <h3>🧪 3. Full Test Sequence</h3>
+          <button
+            class="btn btn-primary"
+            onclick="runFullTest()"
+            style="width: 100%"
+          >
+            Run Full Test (Connect → Request → Get → Revoke)
+          </button>
+        </div>
+
+        <!-- Activity Log -->
+        <div class="section">
+          <h3>
+            📝 Activity Log
+            <button
+              class="btn btn-danger"
+              onclick="clearLog()"
+              style="float: right; padding: 6px 12px; font-size: 12px"
+            >
+              Clear
+            </button>
+          </h3>
+          <div id="log" class="log-container"></div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      let currentAccount = null;
+      let currentChainId = null;
+
+      // Check if wallet is available
+      function checkWallet() {
+        if (typeof window.ethereum !== 'undefined') {
+          log('✅ Hero Wallet detected', 'success');
+          document.getElementById('walletStatus').textContent = 'Detected ✅';
+          return true;
+        } else {
+          log(
+            '❌ Hero Wallet not detected. Please install the extension.',
+            'error'
+          );
+          document.getElementById('walletStatus').textContent =
+            'Not detected ❌';
+          return false;
+        }
+      }
+
+      // Connect wallet
+      async function connectWallet() {
+        if (!checkWallet()) return;
+
+        try {
+          log('🔄 Connecting to wallet...', 'info');
+
+          const accounts = await window.ethereum.request({
+            method: 'eth_requestAccounts',
+          });
+
+          currentAccount = accounts[0];
+          log(`✅ Connected: ${currentAccount}`, 'success');
+
+          // Get chain ID
+          currentChainId = await window.ethereum.request({
+            method: 'eth_chainId',
+          });
+
+          log(`✅ Chain ID: ${currentChainId}`, 'success');
+          updateStatus();
+        } catch (error) {
+          log(`❌ Connection failed: ${error.message}`, 'error');
+          console.error('Connection error:', error);
+
+          // Check if wallet is locked
+          if (error.code === 4100) {
+            log(
+              '🔒 Wallet is locked. Please unlock your wallet first.',
+              'warning'
+            );
+            log('💡 Click the wallet extension icon to unlock', 'info');
+          }
+        }
+      }
+
+      // Disconnect
+      function disconnect() {
+        currentAccount = null;
+        currentChainId = null;
+        updateStatus();
+        log('🔌 Disconnected', 'warning');
+      }
+
+      // Request Permissions
+      async function requestPermissions() {
+        if (!checkWallet()) return;
+
+        try {
+          log(
+            '📡 Requesting permissions (wallet_requestPermissions)...',
+            'info'
+          );
+          log('📦 Params: [{ eth_accounts: {} }]', 'info');
+
+          const permissions = await window.ethereum.request({
+            method: 'wallet_requestPermissions',
+            params: [{ eth_accounts: {} }],
+          });
+
+          log('✅ Permissions granted:', 'success');
+          log(JSON.stringify(permissions, null, 2), 'success');
+
+          // Update current account
+          const accounts = await window.ethereum.request({
+            method: 'eth_accounts',
+          });
+          if (accounts.length > 0) {
+            currentAccount = accounts[0];
+            updateStatus();
+          }
+        } catch (error) {
+          log(`❌ Request permissions failed: ${error.message}`, 'error');
+          console.error('Request permissions error:', error);
+
+          // Check if wallet is locked
+          if (error.code === 4100) {
+            log(
+              '🔒 Wallet is locked. Please unlock your wallet first.',
+              'warning'
+            );
+            log('💡 Click the wallet extension icon to unlock', 'info');
+          }
+        }
+      }
+
+      // Get Permissions
+      async function getPermissions() {
+        if (!checkWallet()) return;
+
+        try {
+          log('📡 Getting permissions (wallet_getPermissions)...', 'info');
+
+          const permissions = await window.ethereum.request({
+            method: 'wallet_getPermissions',
+          });
+
+          log('✅ Current permissions:', 'success');
+          log(JSON.stringify(permissions, null, 2), 'success');
+
+          if (permissions.length === 0) {
+            log(
+              '⚠️ No permissions found. You may need to request permissions first.',
+              'warning'
+            );
+          }
+        } catch (error) {
+          log(`❌ Get permissions failed: ${error.message}`, 'error');
+          console.error('Get permissions error:', error);
+        }
+      }
+
+      // Revoke Permissions
+      async function revokePermissions() {
+        if (!checkWallet()) return;
+
+        try {
+          log('📡 Revoking permissions (wallet_revokePermissions)...', 'info');
+          log('📦 Params: [{ eth_accounts: {} }]', 'info');
+
+          await window.ethereum.request({
+            method: 'wallet_revokePermissions',
+            params: [{ eth_accounts: {} }],
+          });
+
+          log('✅ Permissions revoked successfully', 'success');
+
+          // Clear current account
+          currentAccount = null;
+          updateStatus();
+        } catch (error) {
+          log(`❌ Revoke permissions failed: ${error.message}`, 'error');
+          console.error('Revoke permissions error:', error);
+        }
+      }
+
+      // Run full test sequence
+      async function runFullTest() {
+        log('🧪 Starting full test sequence...', 'info');
+        log('═'.repeat(50), 'info');
+
+        // Step 1: Connect
+        log('📍 Step 1: Connecting wallet...', 'info');
+        await connectWallet();
+        await sleep(1000);
+
+        // Step 2: Request Permissions
+        log('📍 Step 2: Requesting permissions...', 'info');
+        await requestPermissions();
+        await sleep(1000);
+
+        // Step 3: Get Permissions
+        log('📍 Step 3: Getting permissions...', 'info');
+        await getPermissions();
+        await sleep(1000);
+
+        // Step 4: Revoke Permissions
+        log('📍 Step 4: Revoking permissions...', 'info');
+        await revokePermissions();
+        await sleep(1000);
+
+        // Step 5: Verify revocation
+        log('📍 Step 5: Verifying revocation...', 'info');
+        await getPermissions();
+
+        log('═'.repeat(50), 'info');
+        log('✅ Full test sequence completed!', 'success');
+      }
+
+      // Helper: Sleep
+      function sleep(ms) {
+        return new Promise((resolve) => setTimeout(resolve, ms));
+      }
+
+      // Update status display
+      function updateStatus() {
+        document.getElementById('connectedStatus').textContent = currentAccount
+          ? 'Yes ✅'
+          : 'No ❌';
+        document.getElementById('accountAddress').textContent =
+          currentAccount || '-';
+        document.getElementById('networkId').textContent = currentChainId
+          ? `${parseInt(currentChainId, 16)} (${currentChainId})`
+          : '-';
+      }
+
+      // Logging function
+      function log(message, type = 'info') {
+        const logContainer = document.getElementById('log');
+        const entry = document.createElement('div');
+        entry.className = `log-entry ${type}`;
+
+        const timestamp = new Date().toLocaleTimeString();
+        entry.textContent = `[${timestamp}] ${message}`;
+
+        logContainer.appendChild(entry);
+        logContainer.scrollTop = logContainer.scrollHeight;
+
+        // Also log to console
+        console.log(`[${type.toUpperCase()}] ${message}`);
+      }
+
+      // Clear log
+      function clearLog() {
+        document.getElementById('log').innerHTML = '';
+        log('🗑️ Log cleared', 'info');
+      }
+
+      // Event listeners
+      if (window.ethereum) {
+        window.ethereum.on('accountsChanged', (accounts) => {
+          log(
+            `🔄 Account changed: ${accounts[0] || 'disconnected'}`,
+            'warning'
+          );
+          currentAccount = accounts[0] || null;
+          updateStatus();
+        });
+
+        window.ethereum.on('chainChanged', (chainId) => {
+          log(`🔄 Chain changed: ${chainId}`, 'warning');
+          currentChainId = chainId;
+          updateStatus();
+        });
+      }
+
+      // Initialize
+      window.addEventListener('load', () => {
+        log('🚀 Permissions Test Page loaded', 'info');
+        checkWallet();
+        updateStatus();
+      });
+    </script>
+  </body>
+</html>
