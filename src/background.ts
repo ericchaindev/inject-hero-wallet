@@ -1528,3 +1528,58 @@ chrome.runtime.onConnect.addListener((port) => {
   });
 });
 
+// Simple message listener for one-off requests
+chrome.runtime.onMessage.addListener(
+  (message: BackgroundMessage, _sender, sendResponse) => {
+    if (message.kind === 'APPROVAL_RESPONSE') {
+      // Already handled above
+      return false;
+    }
+
+    processPageRequest(message as PageRequest, sendResponse).catch((error) => {
+      console.error('Hero Wallet: Error handling message:', error);
+      sendResponse(
+        buildError(
+          (message as PageRequest)?.request?.id,
+          -32603,
+          'Internal error'
+        )
+      );
+    });
+
+    // Keep the service worker alive until sendResponse runs
+    return true;
+  }
+);
+
+chrome.runtime.onStartup.addListener(() => {
+  console.log('Hero Wallet service worker started');
+  attemptAutoUnlock();
+});
+
+chrome.runtime.onInstalled.addListener((details) => {
+  console.log('Hero Wallet extension installed/updated:', details.reason);
+  attemptAutoUnlock();
+});
+
+// Keep alive mechanism
+setInterval(() => {
+  console.log('🔄 Service worker keepalive ping:', new Date().toISOString());
+  chrome.storage.local.get(['keepalive'], () => {
+    if (chrome.runtime.lastError) {
+      console.log(
+        '🔄 Keepalive completed with error:',
+        chrome.runtime.lastError.message
+      );
+    } else {
+      console.log('🔄 Keepalive completed successfully');
+    }
+  });
+}, 25000);
+
+console.log('✅ Hero Wallet background script ready');
+
+// Attempt auto-unlock on script load
+attemptAutoUnlock().catch((err) => {
+  console.error('Failed to auto-unlock on startup:', err);
+});
