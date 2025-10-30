@@ -23,7 +23,6 @@ import {
   type StoredAccount,
   unlockWithPin,
 } from './utils/keystore';
-import { createSolanaAccount } from './utils/accountSeed';
 
 // Enhanced Background Service Worker for Production
 
@@ -963,31 +962,15 @@ async function handleSolanaConnect(
     });
   }
 
-  // Find or create Solana account
-  let solAccount = state.accounts.find((acc) => acc.chain === 'sol');
+  // Find Solana account
+  const solAccount = state.accounts.find((acc) => acc.chain === 'sol');
   
   if (!solAccount) {
-    console.log('🟣 No Solana account found, creating one...');
-    
-    try {
-      // Get the PIN from remembered PIN (wallet must be unlocked)
-      const rememberedPin = await getRememberedPin();
-      if (!rememberedPin) {
-        throw new Error('Cannot create Solana account: PIN not available');
-      }
-      
-      // Create Solana account
-      solAccount = await createSolanaAccount(rememberedPin, Date.now());
-      
-      // Add to state
-      state.accounts.push(solAccount);
-      await saveState(state);
-      
-      console.log('✅ Solana account created:', solAccount.address);
-    } catch (error) {
-      console.error('❌ Failed to create Solana account:', error);
-      throw { code: 4100, message: 'Failed to create Solana account' };
-    }
+    console.log('🟣 No Solana account found');
+    throw { 
+      code: 4100, 
+      message: 'No Solana account found. Please create one from the wallet settings.' 
+    };
   }
 
   // Check if already connected
