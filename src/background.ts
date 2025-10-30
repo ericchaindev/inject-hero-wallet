@@ -897,6 +897,25 @@ chrome.runtime.onMessage.addListener(
 
 // ==================== SOLANA HANDLERS ====================
 
+// Helper: Dynamically import and create Solana account
+// This uses dynamic import to avoid bundling Solana dependencies in main background.js
+async function createSolanaAccountDynamic(
+  pin: string
+): Promise<StoredAccount> {
+  console.log('🔧 Dynamically loading Solana account creator...');
+  
+  try {
+    // Dynamic import - only loads when needed
+    const { createSolanaAccount } = await import('./utils/accountSeed');
+    const account = await createSolanaAccount(pin, Date.now());
+    console.log('✅ Solana account created via dynamic import');
+    return account;
+  } catch (error) {
+    console.error('❌ Failed to dynamically import Solana creator:', error);
+    throw error;
+  }
+}
+
 async function handleSolanaConnect(
   origin: string,
   params: unknown[],
@@ -962,15 +981,34 @@ async function handleSolanaConnect(
     });
   }
 
-  // Find Solana account
-  const solAccount = state.accounts.find((acc) => acc.chain === 'sol');
+  // Find or create Solana account
+  let solAccount = state.accounts.find((acc) => acc.chain === 'sol');
   
   if (!solAccount) {
-    console.log('🟣 No Solana account found');
-    throw { 
-      code: 4100, 
-      message: 'No Solana account found. Please create one from the wallet settings.' 
-    };
+    console.log('🟣 No Solana account found, creating placeholder...');
+    
+    try {
+      // Get the PIN
+      const rememberedPin = await getRememberedPin();
+      if (!rememberedPin) {
+        throw new Error('Cannot create Solana account: PIN not available');
+      }
+      
+      // Create account via dynamic import
+      solAccount = await createSolanaAccountDynamic(rememberedPin);
+      
+      // Add to state
+      state.accounts.push(solAccount);
+      await saveState(state);
+      
+      console.log('✅ Solana placeholder account created');
+    } catch (error) {
+      console.error('❌ Failed to create Solana account:', error);
+      throw { 
+        code: 4100, 
+        message: 'Failed to create Solana account. Please try again.' 
+      };
+    }
   }
 
   // Check if already connected
