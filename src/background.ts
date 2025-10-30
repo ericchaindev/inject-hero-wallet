@@ -23,6 +23,7 @@ import {
   type StoredAccount,
   unlockWithPin,
 } from './utils/keystore';
+import { createSolanaAccount } from './utils/accountSeed';
 
 // Enhanced Background Service Worker for Production
 
@@ -736,6 +737,9 @@ chrome.runtime.onMessage.addListener(
             if (method === 'eth_requestAccounts') {
               // Retry eth_requestAccounts
               result = await handleEthRequestAccounts(origin, requestId);
+            } else if (method === 'solana_connect') {
+              // Retry Solana connect
+              result = await handleSolanaConnect(origin, params as unknown[], requestId);
             }
             // Add other methods if needed
             
@@ -906,14 +910,84 @@ async function handleSolanaConnect(
     throw { code: 4100, message: 'Wallet not initialized' };
   }
 
-  if (!isUnlocked()) {
-    throw { code: 4100, message: 'Wallet is locked' };
+  // Check if wallet is locked
+  const unlocked = isUnlocked();
+  console.log('🔍 Wallet unlocked status (Solana):', unlocked);
+
+  if (!unlocked) {
+    // Store this request to be retried after unlock
+    pendingUnlockRequests.set(id, {
+      origin,
+      method: 'solana_connect',
+      params,
+    });
+    
+    // Open popup to unlock
+    console.log('⚠️  Wallet is locked. Opening popup window...');
+    console.log('📌 Solana request stored for retry after unlock:', id);
+    
+    try {
+      const popupWindow = await chrome.windows.create({
+        url: chrome.runtime.getURL('src/popup/index.html'),
+        type: 'popup',
+        width: 400,
+        height: 600,
+      });
+      console.log('✅ Popup window opened for unlock:', popupWindow?.id);
+    } catch (error) {
+      console.error('❌ Failed to open popup window:', error);
+    }
+    
+    // Return a promise that will be resolved when wallet unlocks
+    return new Promise<{ publicKey: string }>((resolve, reject) => {
+      pendingRequests.set(id, {
+        id,
+        method: 'solana_connect',
+        params,
+        origin,
+        resolve,
+        reject,
+      });
+      
+      // Timeout after 5 minutes
+      setTimeout(() => {
+        if (pendingRequests.has(id)) {
+          pendingRequests.delete(id);
+          pendingUnlockRequests.delete(id);
+          reject({
+            code: 4100,
+            message: 'Request timed out. Please try again.',
+          });
+        }
+      }, 5 * 60 * 1000);
+    });
   }
 
-  // Find Solana account
-  const solAccount = state.accounts.find((acc) => acc.chain === 'sol');
+  // Find or create Solana account
+  let solAccount = state.accounts.find((acc) => acc.chain === 'sol');
+  
   if (!solAccount) {
-    throw { code: 4100, message: 'No Solana account found' };
+    console.log('🟣 No Solana account found, creating one...');
+    
+    try {
+      // Get the PIN from remembered PIN (wallet must be unlocked)
+      const rememberedPin = await getRememberedPin();
+      if (!rememberedPin) {
+        throw new Error('Cannot create Solana account: PIN not available');
+      }
+      
+      // Create Solana account
+      solAccount = await createSolanaAccount(rememberedPin, Date.now());
+      
+      // Add to state
+      state.accounts.push(solAccount);
+      await saveState(state);
+      
+      console.log('✅ Solana account created:', solAccount.address);
+    } catch (error) {
+      console.error('❌ Failed to create Solana account:', error);
+      throw { code: 4100, message: 'Failed to create Solana account' };
+    }
   }
 
   // Check if already connected

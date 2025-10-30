@@ -116,7 +116,7 @@ async function createBitcoinAccount(
   };
 }
 
-async function createSolanaAccount(
+export async function createSolanaAccount(
   pin: string,
   timestamp: number
 ): Promise<StoredAccount> {
