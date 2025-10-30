@@ -1,5 +1,8 @@
 export {};
 
+// Import Node.js polyfills for browser/service worker (Buffer, process)
+import './polyfills';
+
 // Polyfill for ethers.js in service worker context
 // ethers.js expects window object but it doesn't exist in service workers
 if (typeof window === 'undefined') {

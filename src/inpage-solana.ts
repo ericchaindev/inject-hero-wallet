@@ -1,3 +1,6 @@
+// Import Node.js polyfills for browser (Buffer, process)
+import './polyfills';
+
 // Solana Provider for Hero Wallet - IIFE Wrapped for Isolation
 // Based on Wallet Standard and Phantom Wallet API
 

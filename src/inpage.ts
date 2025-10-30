@@ -1,3 +1,6 @@
+// Import Node.js polyfills for browser (Buffer, process)
+import './polyfills';
+
 // Type definitions with strict compliance
 (function () {
   'use strict';

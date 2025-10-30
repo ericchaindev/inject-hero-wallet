@@ -215,6 +215,12 @@ export default defineConfig(({ command, mode }) => {
         '@adapters': resolve(__dirname, 'src/adapters'),
         '@ui': resolve(__dirname, 'src/ui'),
         '@popup': resolve(__dirname, 'src/popup'),
+        // Node.js polyfills for browser
+        buffer: 'buffer/',
+        process: 'process/browser',
+        stream: 'stream-browserify',
+        util: 'util/',
+        events: 'events/',
       },
       extensions: ['.ts', '.tsx', '.js', '.jsx', '.json'],
     },
@@ -261,6 +267,8 @@ export default defineConfig(({ command, mode }) => {
       __PROD__: isProduction,
       __VERSION__: JSON.stringify(manifest.version),
       'process.env.NODE_ENV': JSON.stringify(mode),
+      global: 'globalThis',
+      'process.env': '{}',
     },
 
     // Enhanced logging
