@@ -146,11 +146,20 @@ export default function App() {
       setPin('');
       
       // Notify background script that wallet is unlocked
+      console.log('🔓 Attempting to send WALLET_UNLOCKED notification...');
       try {
-        chrome.runtime.sendMessage({ kind: 'WALLET_UNLOCKED' });
-        console.log('✅ Sent WALLET_UNLOCKED notification to background');
+        chrome.runtime.sendMessage(
+          { kind: 'WALLET_UNLOCKED' },
+          (response) => {
+            if (chrome.runtime.lastError) {
+              console.error('❌ Failed to send unlock notification:', chrome.runtime.lastError);
+            } else {
+              console.log('✅ WALLET_UNLOCKED notification sent, response:', response);
+            }
+          }
+        );
       } catch (error) {
-        console.warn('Failed to notify background of unlock:', error);
+        console.error('❌ Exception sending unlock notification:', error);
       }
     } catch (error) {
       console.error('Unlock failed:', error);
@@ -335,11 +344,20 @@ export default function App() {
       setConfirmNewPin('');
       
       // Notify background script that wallet is unlocked
+      console.log('🔓 Attempting to send WALLET_UNLOCKED notification (restore)...');
       try {
-        chrome.runtime.sendMessage({ kind: 'WALLET_UNLOCKED' });
-        console.log('✅ Sent WALLET_UNLOCKED notification to background');
+        chrome.runtime.sendMessage(
+          { kind: 'WALLET_UNLOCKED' },
+          (response) => {
+            if (chrome.runtime.lastError) {
+              console.error('❌ Failed to send unlock notification:', chrome.runtime.lastError);
+            } else {
+              console.log('✅ WALLET_UNLOCKED notification sent, response:', response);
+            }
+          }
+        );
       } catch (error) {
-        console.warn('Failed to notify background of unlock:', error);
+        console.error('❌ Exception sending unlock notification:', error);
       }
     } catch (error) {
       console.error('Restore wallet failed:', error);
@@ -437,11 +455,20 @@ export default function App() {
       setConfirmNewPin('');
       
       // Notify background script that wallet is unlocked
+      console.log('🔓 Attempting to send WALLET_UNLOCKED notification (create)...');
       try {
-        chrome.runtime.sendMessage({ kind: 'WALLET_UNLOCKED' });
-        console.log('✅ Sent WALLET_UNLOCKED notification to background');
+        chrome.runtime.sendMessage(
+          { kind: 'WALLET_UNLOCKED' },
+          (response) => {
+            if (chrome.runtime.lastError) {
+              console.error('❌ Failed to send unlock notification:', chrome.runtime.lastError);
+            } else {
+              console.log('✅ WALLET_UNLOCKED notification sent, response:', response);
+            }
+          }
+        );
       } catch (error) {
-        console.warn('Failed to notify background of unlock:', error);
+        console.error('❌ Exception sending unlock notification:', error);
       }
     } catch (error) {
       console.error('Create wallet failed:', error);

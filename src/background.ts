@@ -715,6 +715,8 @@ async function handleSendTransaction(
 // Handle approval responses from approval.html
 chrome.runtime.onMessage.addListener(
   (message: BackgroundMessage, sender, sendResponse) => {
+    console.log('📨 Received message in background:', message.kind, 'from:', sender.tab?.url || 'extension');
+    
     // Handle wallet unlock notification
     if (message.kind === 'WALLET_UNLOCKED') {
       console.log('🔓 Wallet unlocked! Processing pending requests...');
